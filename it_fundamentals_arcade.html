@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IT Fundamentals Arcade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0e14;
+    --panel:#111826;
+    --panel-edge:#202a3d;
+    --copper:#c17a4d;
+    --copper-bright:#e2965f;
+    --phosphor:#6df7c1;
+    --phosphor-dim:#2f8f73;
+    --gold:#f2c14e;
+    --text:#e8ecf1;
+    --text-dim:#8b94a7;
+    --danger:#ef6461;
+    --mono:'Space Mono', monospace;
+    --sans:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 20% 0%, rgba(193,122,77,0.07), transparent 40%),
+      radial-gradient(circle at 80% 100%, rgba(109,247,193,0.05), transparent 40%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    min-height:100vh;
+    padding:24px 16px 60px;
+  }
+  .wrap{max-width:640px;margin:0 auto;}
+
+  /* CRT header */
+  .crt{
+    background:var(--panel);
+    border:1px solid var(--panel-edge);
+    border-radius:14px;
+    padding:22px 20px 18px;
+    position:relative;
+    overflow:hidden;
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.5);
+  }
+  .crt::before{
+    content:"";
+    position:absolute; inset:0;
+    background:repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 3px);
+    pointer-events:none;
+  }
+  .led{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--phosphor);
+    display:inline-block;
+    box-shadow:0 0 8px var(--phosphor);
+    animation:pulse 1.6s ease-in-out infinite;
+    margin-right:8px;
+  }
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.14em;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    display:flex;align-items:center;
+  }
+  h1{
+    font-family:var(--mono);
+    font-size:26px;
+    margin:10px 0 4px;
+    color:var(--copper-bright);
+    letter-spacing:.02em;
+  }
+  .sub{color:var(--text-dim);font-size:14px;margin:0;}
+  .scorebar{
+    margin-top:16px;
+    display:flex;gap:14px;flex-wrap:wrap;
+    font-family:var(--mono);font-size:12px;color:var(--phosphor);
+  }
+  .scorebar b{color:var(--gold);font-size:15px;}
+
+  /* Bus / hub */
+  .bus{position:relative;margin-top:26px;padding-left:26px;}
+  .bus::before{
+    content:"";
+    position:absolute; left:9px; top:6px; bottom:6px; width:2px;
+    background:linear-gradient(var(--copper), var(--copper-dim,var(--copper)));
+    opacity:.55;
+  }
+  .chip{
+    position:relative;
+    background:var(--panel);
+    border:1px solid var(--panel-edge);
+    border-radius:10px;
+    padding:16px 16px 16px 18px;
+    margin-bottom:14px;
+    cursor:pointer;
+    transition:border-color .15s, transform .15s;
+  }
+  .chip:hover{border-color:var(--copper); transform:translateX(3px);}
+  .chip::before{
+    content:"";
+    position:absolute; left:-26px; top:50%; transform:translateY(-50%);
+    width:18px; height:2px; background:var(--copper); opacity:.55;
+  }
+  .chip::after{
+    content:"";
+    position:absolute; left:-30px; top:50%; transform:translateY(-50%);
+    width:8px;height:8px;border-radius:50%;
+    background:var(--bg); border:2px solid var(--copper);
+  }
+  .chip-top{display:flex; justify-content:space-between; align-items:baseline;}
+  .chip-id{font-family:var(--mono); font-size:11px; color:var(--text-dim);}
+  .chip-title{font-family:var(--mono); font-size:16px; font-weight:700; margin:4px 0 6px; color:var(--text);}
+  .chip-desc{font-size:13px; color:var(--text-dim); margin:0;}
+  .chip-best{font-family:var(--mono); font-size:11px; color:var(--phosphor); margin-top:8px;}
+
+  /* Game screens */
+  .screen{display:none;}
+  .screen.active{display:block;}
+  #hub.active{display:block;}
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--panel-edge);
+    border-radius:14px;
+    padding:20px;
+    margin-top:18px;
+  }
+  .backbtn{
+    font-family:var(--mono); font-size:12px; color:var(--text-dim);
+    background:none; border:1px solid var(--panel-edge); border-radius:8px;
+    padding:8px 12px; cursor:pointer; margin-bottom:14px;
+  }
+  .backbtn:hover{border-color:var(--copper); color:var(--copper-bright);}
+  .gtitle{font-family:var(--mono); font-size:18px; color:var(--copper-bright); margin:0 0 4px;}
+  .ghud{display:flex; gap:16px; font-family:var(--mono); font-size:12px; color:var(--phosphor); margin-bottom:14px;}
+  .ghud b{color:var(--gold);}
+
+  button.action{
+    font-family:var(--sans); font-weight:600; font-size:14px;
+    background:var(--copper); color:#1b120b; border:none;
+    border-radius:8px; padding:10px 16px; cursor:pointer;
+  }
+  button.action:hover{background:var(--copper-bright);}
+  button.action:disabled{opacity:.4; cursor:not-allowed;}
+
+  /* Timeline game */
+  .tl-list{list-style:none; margin:0; padding:0;}
+  .tl-item{
+    background:#0e1420; border:1px solid var(--panel-edge); border-radius:8px;
+    padding:12px 14px; margin-bottom:8px; font-size:14px;
+    display:flex; align-items:center; gap:10px; cursor:grab;
+    user-select:none;
+  }
+  .tl-item.dragging{opacity:.4;}
+  .tl-slot{
+    font-family:var(--mono); color:var(--text-dim); font-size:12px; width:20px;
+  }
+  .tl-feedback{margin-top:12px; font-size:13px; font-family:var(--mono);}
+  .ok{color:var(--phosphor);} .bad{color:var(--danger);}
+
+  /* Converter game */
+  .conv-display{
+    font-family:var(--mono); font-size:32px; text-align:center;
+    background:#0e1420; border:1px solid var(--panel-edge); border-radius:10px;
+    padding:20px; margin-bottom:14px; color:var(--gold);
+    letter-spacing:.05em;
+  }
+  .conv-sub{text-align:center; color:var(--text-dim); font-size:13px; margin-bottom:16px; font-family:var(--mono);}
+  .conv-input{
+    width:100%; font-family:var(--mono); font-size:20px; text-align:center;
+    background:#0e1420; border:1px solid var(--panel-edge); color:var(--text);
+    border-radius:8px; padding:12px; margin-bottom:12px;
+  }
+  .conv-input:focus{outline:none; border-color:var(--copper);}
+  .timerbar{height:6px; background:#0e1420; border-radius:4px; overflow:hidden; margin-bottom:16px;}
+  .timerfill{height:100%; background:var(--phosphor); width:100%; transition:width .1s linear;}
+
+  /* Sort game */
+  .sort-card{
+    font-family:var(--mono); font-size:17px; text-align:center;
+    background:#0e1420; border:1px solid var(--copper); border-radius:10px;
+    padding:22px; margin-bottom:16px; transition:transform .15s;
+  }
+  .sort-card.shake{animation:shake .3s;}
+  @keyframes shake{25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
+  .bins{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .bin{
+    font-family:var(--sans); font-weight:600; font-size:13px;
+    background:#0e1420; border:1px solid var(--panel-edge); border-radius:8px;
+    padding:14px 8px; cursor:pointer; text-align:center; color:var(--text);
+  }
+  .bin:hover{border-color:var(--phosphor); color:var(--phosphor);}
+
+  /* Ethics court */
+  .case{
+    font-size:14px; line-height:1.5; background:#0e1420; border:1px solid var(--panel-edge);
+    border-radius:10px; padding:16px; margin-bottom:14px;
+  }
+  .choice{
+    display:block; width:100%; text-align:left; font-family:var(--sans); font-size:13px;
+    background:#0e1420; border:1px solid var(--panel-edge); color:var(--text);
+    border-radius:8px; padding:10px 12px; margin-bottom:8px; cursor:pointer;
+  }
+  .choice:hover{border-color:var(--copper);}
+  .choice.correct{border-color:var(--phosphor); color:var(--phosphor);}
+  .choice.wrong{border-color:var(--danger); color:var(--danger);}
+
+  .final{text-align:center; padding:20px 0;}
+  .final .big{font-family:var(--mono); font-size:40px; color:var(--gold);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="crt">
+    <div class="eyebrow"><span class="led"></span>DEPT. OF INFORMATION TECHNOLOGY — REVIEW CABINET</div>
+    <h1>IT FUNDAMENTALS ARCADE</h1>
+    <p class="sub">Four mini-games. One motherboard. Pick a chip to boot it up.</p>
+    <div class="scorebar">
+      <div>ARCADE SCORE <b id="totalScore">0</b></div>
+      <div>GAMES CLEARED <b id="gamesCleared">0</b>/4</div>
+    </div>
+  </div>
+
+  <!-- HUB -->
+  <div id="hub" class="screen active">
+    <div class="bus">
+      <div class="chip" onclick="openGame('timeline')">
+        <div class="chip-top"><span class="chip-id">U1 · HISTORY</span></div>
+        <div class="chip-title">TIMELINE TYCOON</div>
+        <p class="chip-desc">Drag computing milestones into the correct chronological order.</p>
+        <div class="chip-best" id="best-timeline"></div>
+      </div>
+      <div class="chip" onclick="openGame('converter')">
+        <div class="chip-top"><span class="chip-id">U2 · NUMBER SYSTEMS</span></div>
+        <div class="chip-title">BASE CONVERTER ARCADE</div>
+        <p class="chip-desc">Convert numbers between binary, decimal, and hex before the clock runs out.</p>
+        <div class="chip-best" id="best-converter"></div>
+      </div>
+      <div class="chip" onclick="openGame('sort')">
+        <div class="chip-top"><span class="chip-id">U3 · SYSTEM ELEMENTS</span></div>
+        <div class="chip-title">SORT THE SYSTEM</div>
+        <p class="chip-desc">Bin each component as Input, Output, Processing, or Storage.</p>
+        <div class="chip-best" id="best-sort"></div>
+      </div>
+      <div class="chip" onclick="openGame('ethics')">
+        <div class="chip-top"><span class="chip-id">U4 · PROFESSIONAL ISSUES</span></div>
+        <div class="chip-title">ETHICS COURT</div>
+        <p class="chip-desc">Read the case, rule on it: which law or license applies?</p>
+        <div class="chip-best" id="best-ethics"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIMELINE TYCOON -->
+  <div id="timeline" class="screen">
+    <div class="panel">
+      <button class="backbtn" onclick="goHub()">&larr; BACK TO HUB</button>
+      <div class="gtitle">TIMELINE TYCOON</div>
+      <div class="ghud"><div>ATTEMPTS <b id="tl-attempts">0</b></div></div>
+      <p class="sub" style="margin-bottom:14px;">Drag the cards (or use the ↑↓ buttons) so they read oldest → newest, then check your order.</p>
+      <ul class="tl-list" id="tl-list"></ul>
+      <button class="action" onclick="checkTimeline()">CHECK ORDER</button>
+      <div class="tl-feedback" id="tl-feedback"></div>
+    </div>
+  </div>
+
+  <!-- BASE CONVERTER -->
+  <div id="converter" class="screen">
+    <div class="panel">
+      <button class="backbtn" onclick="goHub()">&larr; BACK TO HUB</button>
+      <div class="gtitle">BASE CONVERTER ARCADE</div>
+      <div class="ghud"><div>ROUND <b id="conv-round">1</b>/8</div><div>SCORE <b id="conv-score">0</b></div><div>STREAK <b id="conv-streak">0</b></div></div>
+      <div class="timerbar"><div class="timerfill" id="conv-timerfill"></div></div>
+      <div class="conv-display" id="conv-display">—</div>
+      <div class="conv-sub" id="conv-sub">Convert to —</div>
+      <input class="conv-input" id="conv-input" placeholder="type your answer" autocomplete="off" onkeydown="if(event.key==='Enter')submitConv()">
+      <button class="action" onclick="submitConv()" style="width:100%;">SUBMIT</button>
+      <div class="tl-feedback" id="conv-feedback"></div>
+    </div>
+  </div>
+
+  <!-- SORT THE SYSTEM -->
+  <div id="sort" class="screen">
+    <div class="panel">
+      <button class="backbtn" onclick="goHub()">&larr; BACK TO HUB</button>
+      <div class="gtitle">SORT THE SYSTEM</div>
+      <div class="ghud"><div>ITEM <b id="sort-round">1</b>/12</div><div>SCORE <b id="sort-score">0</b></div></div>
+      <div class="sort-card" id="sort-card">—</div>
+      <div class="bins">
+        <div class="bin" onclick="answerSort('Input')">INPUT</div>
+        <div class="bin" onclick="answerSort('Output')">OUTPUT</div>
+        <div class="bin" onclick="answerSort('Processing')">PROCESSING</div>
+        <div class="bin" onclick="answerSort('Storage')">STORAGE</div>
+      </div>
+      <div class="tl-feedback" id="sort-feedback"></div>
+    </div>
+  </div>
+
+  <!-- ETHICS COURT -->
+  <div id="ethics" class="screen">
+    <div class="panel">
+      <button class="backbtn" onclick="goHub()">&larr; BACK TO HUB</button>
+      <div class="gtitle">ETHICS COURT</div>
+      <div class="ghud"><div>CASE <b id="eth-round">1</b>/6</div><div>SCORE <b id="eth-score">0</b></div></div>
+      <div class="case" id="eth-case">—</div>
+      <div id="eth-choices"></div>
+      <div class="tl-feedback" id="eth-feedback"></div>
+    </div>
+  </div>
+
+  <!-- FINAL -->
+  <div id="final" class="screen">
+    <div class="panel final">
+      <div class="sub">GAME COMPLETE</div>
+      <div class="big" id="final-score">0</div>
+      <p class="sub" id="final-msg"></p>
+      <button class="action" onclick="goHub()">BACK TO HUB</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ---------- shared state ---------- */
+let totalScore = 0;
+let gamesCleared = new Set();
+const bestScores = {timeline:null, converter:null, sort:null, ethics:null};
+
+function updateHeader(){
+  document.getElementById('totalScore').textContent = totalScore;
+  document.getElementById('gamesCleared').textContent = gamesCleared.size;
+  for(const k in bestScores){
+    const el = document.getElementById('best-'+k);
+    if(el) el.textContent = bestScores[k]!==null ? 'BEST: '+bestScores[k] : 'not yet attempted';
+  }
+}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goHub(){ showScreen('hub'); }
+function openGame(id){
+  showScreen(id);
+  if(id==='timeline') initTimeline();
+  if(id==='converter') initConverter();
+  if(id==='sort') initSort();
+  if(id==='ethics') initEthics();
+}
+function finish(gameKey, score, max, msg){
+  totalScore += score;
+  gamesCleared.add(gameKey);
+  if(bestScores[gameKey]===null || score>bestScores[gameKey]) bestScores[gameKey]=score;
+  updateHeader();
+  document.getElementById('final-score').textContent = score+' / '+max;
+  document.getElementById('final-msg').textContent = msg;
+  showScreen('final');
+}
+
+/* ================= TIMELINE TYCOON ================= */
+const timelineFacts = [
+  {id:'babbage', label:'Charles Babbage designs the Analytical Engine', year:1837},
+  {id:'turing', label:'Alan Turing publishes the theory of the Turing Machine', year:1936},
+  {id:'vn', label:'Von Neumann architecture is proposed', year:1945},
+  {id:'gen1', label:'1st Generation computers — vacuum tubes', year:1950},
+  {id:'gen2', label:'2nd Generation computers — transistors', year:1958},
+  {id:'gen3', label:'3rd Generation computers — integrated circuits', year:1965},
+  {id:'gen4', label:'4th Generation computers — microprocessors', year:1975},
+];
+let tlOrder = [];
+let tlAttempts = 0;
+function initTimeline(){
+  tlOrder = [...timelineFacts].sort(()=>Math.random()-0.5);
+  tlAttempts = 0;
+  document.getElementById('tl-attempts').textContent = tlAttempts;
+  document.getElementById('tl-feedback').innerHTML = '';
+  renderTimeline();
+}
+function renderTimeline(){
+  const ul = document.getElementById('tl-list');
+  ul.innerHTML = '';
+  tlOrder.forEach((item, idx)=>{
+    const li = document.createElement('li');
+    li.className='tl-item';
+    li.draggable = true;
+    li.dataset.idx = idx;
+    li.innerHTML = `<span class="tl-slot">${idx+1}</span><span>${item.label}</span>
+      <span style="margin-left:auto;display:flex;gap:4px;">
+        <button class="action" style="padding:4px 8px;" onclick="moveItem(${idx},-1)">↑</button>
+        <button class="action" style="padding:4px 8px;" onclick="moveItem(${idx},1)">↓</button>
+      </span>`;
+    li.addEventListener('dragstart', ()=>li.classList.add('dragging'));
+    li.addEventListener('dragend', ()=>{li.classList.remove('dragging'); renderTimeline();});
+    li.addEventListener('dragover', e=>{
+      e.preventDefault();
+      const dragging = ul.querySelector('.dragging');
+      if(!dragging || dragging===li) return;
+      const from = +dragging.dataset.idx, to=+li.dataset.idx;
+      const moved = tlOrder.splice(from,1)[0];
+      tlOrder.splice(to,0,moved);
+      renderTimeline();
+    });
+    ul.appendChild(li);
+  });
+}
+function moveItem(idx, dir){
+  const to = idx+dir;
+  if(to<0||to>=tlOrder.length) return;
+  [tlOrder[idx], tlOrder[to]] = [tlOrder[to], tlOrder[idx]];
+  renderTimeline();
+}
+function checkTimeline(){
+  tlAttempts++;
+  document.getElementById('tl-attempts').textContent = tlAttempts;
+  const correct = tlOrder.every((item,i)=> i===0 || tlOrder[i-1].year <= item.year);
+  const fb = document.getElementById('tl-feedback');
+  if(correct){
+    fb.innerHTML = '<span class="ok">Correct order! The chain is soldered.</span>';
+    const score = Math.max(100 - (tlAttempts-1)*15, 20);
+    setTimeout(()=>finish('timeline', score, 100, 'Timeline assembled in '+tlAttempts+' attempt(s).'),700);
+  } else {
+    fb.innerHTML = '<span class="bad">Not quite in order yet — check the years and try again.</span>';
+  }
+}
+
+/* ================= BASE CONVERTER ================= */
+const bases = {bin:2, dec:10, hex:16};
+const baseNames = {bin:'binary', dec:'decimal', hex:'hexadecimal'};
+let convRound=0, convScore=0, convStreak=0, convTimer=null, convTimeLeft=0, convAnswer='', convFrom='', convTo='';
+function initConverter(){
+  convRound=0; convScore=0; convStreak=0;
+  document.getElementById('conv-score').textContent=0;
+  document.getElementById('conv-streak').textContent=0;
+  nextConvRound();
+}
+function nextConvRound(){
+  convRound++;
+  document.getElementById('conv-round').textContent = Math.min(convRound,8);
+  if(convRound>8){ finish('converter', convScore, 800, 'Final streak: '+convStreak+'.'); return; }
+  const num = Math.floor(Math.random()*(convRound<=3?63:1023))+1;
+  const pairs=[['dec','bin'],['bin','dec'],['dec','hex'],['hex','dec'],['bin','hex'],['hex','bin']];
+  const [from,to] = pairs[Math.floor(Math.random()*pairs.length)];
+  convFrom=from; convTo=to;
+  const shown = num.toString(bases[from]);
+  document.getElementById('conv-display').textContent = shown.toUpperCase();
+  document.getElementById('conv-sub').textContent = `That's ${baseNames[from]}. Convert to ${baseNames[to]}:`;
+  convAnswer = num.toString(bases[to]);
+  document.getElementById('conv-input').value='';
+  document.getElementById('conv-input').focus();
+  document.getElementById('conv-feedback').innerHTML='';
+  clearInterval(convTimer);
+  convTimeLeft = 15000;
+  const fill = document.getElementById('conv-timerfill');
+  fill.style.width='100%';
+  const start = Date.now();
+  convTimer = setInterval(()=>{
+    const left = Math.max(0, 15000-(Date.now()-start));
+    fill.style.width = (left/15000*100)+'%';
+    if(left<=0){ clearInterval(convTimer); convStreak=0; document.getElementById('conv-streak').textContent=0;
+      document.getElementById('conv-feedback').innerHTML = '<span class="bad">Time up! It was '+convAnswer.toUpperCase()+'</span>';
+      setTimeout(nextConvRound, 900);
+    }
+  },50);
+}
+function submitConv(){
+  const val = document.getElementById('conv-input').value.trim().toLowerCase();
+  clearInterval(convTimer);
+  const fb = document.getElementById('conv-feedback');
+  if(val === convAnswer.toLowerCase()){
+    convStreak++;
+    const gain = 60 + convStreak*10;
+    convScore += gain;
+    document.getElementById('conv-score').textContent = convScore;
+    document.getElementById('conv-streak').textContent = convStreak;
+    fb.innerHTML = '<span class="ok">Correct! +'+gain+'</span>';
+  } else {
+    convStreak=0;
+    document.getElementById('conv-streak').textContent = 0;
+    fb.innerHTML = '<span class="bad">Nope — it was '+convAnswer.toUpperCase()+'</span>';
+  }
+  setTimeout(nextConvRound, 700);
+}
+
+/* ================= SORT THE SYSTEM ================= */
+const sortItems = [
+  {name:'Keyboard', cat:'Input'}, {name:'Mouse', cat:'Input'}, {name:'Scanner', cat:'Input'}, {name:'Microphone', cat:'Input'},
+  {name:'Monitor', cat:'Output'}, {name:'Printer', cat:'Output'}, {name:'Speaker', cat:'Output'},
+  {name:'ALU', cat:'Processing'}, {name:'Control Unit', cat:'Processing'}, {name:'Register', cat:'Processing'},
+  {name:'SSD', cat:'Storage'}, {name:'RAM', cat:'Storage'},
+];
+let sortDeck=[], sortIdx=0, sortScore=0;
+function initSort(){
+  sortDeck = [...sortItems].sort(()=>Math.random()-0.5);
+  sortIdx=0; sortScore=0;
+  document.getElementById('sort-score').textContent=0;
+  renderSort();
+}
+function renderSort(){
+  if(sortIdx>=sortDeck.length){ finish('sort', sortScore, sortDeck.length*10, 'Sorted '+sortDeck.length+' components.'); return; }
+  document.getElementById('sort-round').textContent = sortIdx+1;
+  document.getElementById('sort-card').textContent = sortDeck[sortIdx].name;
+  document.getElementById('sort-feedback').innerHTML='';
+}
+function answerSort(cat){
+  const card = document.getElementById('sort-card');
+  const item = sortDeck[sortIdx];
+  const fb = document.getElementById('sort-feedback');
+  if(cat===item.cat){
+    sortScore+=10;
+    document.getElementById('sort-score').textContent = sortScore;
+    fb.innerHTML = '<span class="ok">Correct — '+item.name+' is '+item.cat+'.</span>';
+  } else {
+    card.classList.add('shake');
+    setTimeout(()=>card.classList.remove('shake'),300);
+    fb.innerHTML = '<span class="bad">Actually '+item.cat+'.</span>';
+  }
+  sortIdx++;
+  setTimeout(renderSort, 600);
+}
+
+/* ================= ETHICS COURT ================= */
+const ethicsOptions = ['RA 10173 — Data Privacy Act', 'RA 10175 — Cybercrime Prevention Act', 'Copyright / IP Law', 'Open-Source License Terms'];
+const ethicsCases = [
+  {text:'A retail app quietly sells its customers\u2019 phone numbers and addresses to a marketing firm, without asking anyone first.', answer:'RA 10173 — Data Privacy Act'},
+  {text:'An attacker breaks into a bank\u2019s servers and defaces its homepage overnight.', answer:'RA 10175 — Cybercrime Prevention Act'},
+  {text:'A developer releases their code publicly and explicitly allows anyone to copy, modify, and redistribute it.', answer:'Open-Source License Terms'},
+  {text:'A startup copies a competitor\u2019s app design pixel-for-pixel and sells it as an original product.', answer:'Copyright / IP Law'},
+  {text:'An employee installs cracked, unlicensed copies of paid software across every computer in the office.', answer:'Copyright / IP Law'},
+  {text:'Someone creates fake accounts to impersonate a real person and steal their online identity.', answer:'RA 10175 — Cybercrime Prevention Act'},
+];
+let ethIdx=0, ethScore=0;
+function initEthics(){
+  ethIdx=0; ethScore=0;
+  document.getElementById('eth-score').textContent=0;
+  renderEthics();
+}
+function renderEthics(){
+  if(ethIdx>=ethicsCases.length){ finish('ethics', ethScore, ethicsCases.length*10, 'Ruled on '+ethicsCases.length+' cases.'); return; }
+  document.getElementById('eth-round').textContent = ethIdx+1;
+  document.getElementById('eth-case').textContent = ethicsCases[ethIdx].text;
+  document.getElementById('eth-feedback').innerHTML='';
+  const box = document.getElementById('eth-choices');
+  box.innerHTML='';
+  const shuffled = [...ethicsOptions].sort(()=>Math.random()-0.5);
+  shuffled.forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='choice';
+    btn.textContent = opt;
+    btn.onclick = ()=>ruleEthics(opt, btn);
+    box.appendChild(btn);
+  });
+}
+function ruleEthics(opt, btn){
+  const correct = ethicsCases[ethIdx].answer;
+  document.querySelectorAll('#eth-choices .choice').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  const fb = document.getElementById('eth-feedback');
+  if(opt===correct){ ethScore+=10; document.getElementById('eth-score').textContent=ethScore;
+    fb.innerHTML='<span class="ok">Correct ruling.</span>';
+  } else {
+    fb.innerHTML='<span class="bad">Correct answer: '+correct+'</span>';
+  }
+  ethIdx++;
+  setTimeout(renderEthics, 1100);
+}
+
+updateHeader();
+</script>
+</body>
+</html>
