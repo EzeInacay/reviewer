@@ -230,6 +230,7 @@
 
   <!-- HUB -->
   <div id="hub" class="screen active">
+    <a href="index.html" class="backbtn" style="display:inline-block;text-decoration:none;margin-bottom:14px;">&larr; BACK TO HOME</a>
     <div class="bus">
       <div class="chip" onclick="openGame('timeline')">
         <div class="chip-top"><span class="chip-id">U1 · HISTORY</span></div>
@@ -340,12 +341,16 @@ function updateHeader(){
     const el = document.getElementById('best-'+k);
     if(el) el.textContent = bestScores[k]!==null ? 'BEST: '+bestScores[k] : 'not yet attempted';
   }
+  const summary = document.getElementById('best-hub-summary');
+  if(summary) summary.textContent = gamesCleared.size+'/4 mini-games cleared';
 }
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
 function goHub(){ showScreen('hub'); }
+function goStart(){ showScreen('start'); }
+function openTopic(id){ showScreen(id); }
 function openGame(id){
   showScreen(id);
   if(id==='timeline') initTimeline();
