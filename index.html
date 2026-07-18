@@ -182,43 +182,49 @@
   <input class="suggest-input" id="sugName" placeholder="Name (optional)">
   <div class="suggest-row">
     <button class="suggest-btn" onclick="addSuggestion()">SEND</button>
-    <button class="suggest-btn secondary" onclick="document.getElementById('sugFile').click()">LOAD FILE</button>
+    <a class="suggest-btn secondary" href="suggestion.html" style="text-decoration:none; text-align:center;">SUGGESTIONS</a>
   </div>
-  <input type="file" id="sugFile" accept=".html" style="display:none;" onchange="loadSuggestionFile(event)">
   <div class="suggest-toast" id="sugToast"></div>
-  <div class="suggest-note">Sending downloads an updated <b>suggestion.html</b>. Load your previous one first to keep adding to the same list — static pages can't write to disk on their own.</div>
+  <div class="suggest-note" id="sugNote">First send will ask you to pick <b>suggestion.html</b> in this folder — after that, SEND just saves to it.</div>
 </div>
 
 <script>
 let suggestions = [];
+let fileHandle = null;
+const supportsDirectSave = !!window.showOpenFilePicker;
 
-function loadSuggestionFile(e){
-  const file = e.target.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(ev){
-    const match = ev.target.result.match(/<script type="application\/json" id="sugData">([\s\S]*?)<\/script>/);
-    if(match){
-      try{
-        suggestions = JSON.parse(match[1]);
-        updateSugCount();
-        toast('Loaded '+suggestions.length+' previous suggestion(s).');
-      }catch(err){
-        toast('Could not read that file.');
-      }
-    } else {
-      toast('No suggestion data found in that file.');
-    }
-  };
-  reader.readAsText(file);
-  e.target.value = '';
+if(!supportsDirectSave){
+  document.getElementById('sugNote').innerHTML = 'Direct file writing needs Chrome or Edge — falling back to downloading an updated <b>suggestion.html</b> each time you send.';
 }
 
-function addSuggestion(){
+function parseSuggestionsFromHtml(text){
+  const match = text.match(/<script type="application\/json" id="sugData">([\s\S]*?)<\/script>/);
+  if(!match) return null;
+  try{ return JSON.parse(match[1]); } catch(err){ return null; }
+}
+
+async function addSuggestion(){
   const msgEl = document.getElementById('sugMessage');
   const nameEl = document.getElementById('sugName');
   const msg = msgEl.value.trim();
   if(!msg){ toast('Write a message first.'); return; }
+
+  if(!fileHandle && supportsDirectSave){
+    try{
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: 'HTML file', accept: {'text/html': ['.html']} }]
+      });
+      const file = await handle.getFile();
+      const text = await file.text();
+      const parsed = parseSuggestionsFromHtml(text);
+      fileHandle = handle;
+      if(parsed) suggestions = parsed;
+    } catch(err){
+      if(err.name === 'AbortError'){ return; } // user cancelled the picker, don't send
+      // any other error: fall through and use the download fallback below
+    }
+  }
+
   suggestions.unshift({
     name: nameEl.value.trim() || 'Anonymous',
     message: msg,
@@ -226,8 +232,22 @@ function addSuggestion(){
   });
   msgEl.value='';
   updateSugCount();
-  downloadSuggestions();
-  toast('Added — suggestion.html downloaded.');
+
+  const html = buildSuggestionHtml();
+
+  if(fileHandle){
+    try{
+      const writable = await fileHandle.createWritable();
+      await writable.write(html);
+      await writable.close();
+      toast('Saved to suggestion.html.');
+      return;
+    } catch(err){
+      toast('Direct save failed ('+err.message+') — downloading instead.');
+    }
+  }
+  downloadHtml(html);
+  toast('Downloaded suggestion.html — save it into this folder.');
 }
 
 function updateSugCount(){
@@ -239,14 +259,14 @@ function toast(msg){
   setTimeout(()=>{ if(t.textContent===msg) t.textContent=''; }, 3500);
 }
 
-function downloadSuggestions(){
+function buildSuggestionHtml(){
   const rows = suggestions.map(s => `
     <div class="entry">
       <div class="entry-head"><span class="entry-name">${escapeHtml(s.name)}</span><span class="entry-time">${escapeHtml(s.time)}</span></div>
       <div class="entry-msg">${escapeHtml(s.message)}</div>
     </div>`).join('');
 
-  const html = `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -276,7 +296,9 @@ function downloadSuggestions(){
 <script type="application/json" id="sugData">${JSON.stringify(suggestions)}</` + `script>
 </body>
 </html>`;
+}
 
+function downloadHtml(html){
   const blob = new Blob([html], {type:'text/html'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
