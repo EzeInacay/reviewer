@@ -141,6 +141,13 @@
 /* ================= UTIL ================= */
 function shuffle(arr){ return [...arr].sort(()=>Math.random()-0.5); }
 function fmt(t){ const m=Math.floor(t/60).toString().padStart(2,'0'); const s=Math.floor(t%60).toString().padStart(2,'0'); return m+':'+s; }
+function pickQuestion(pool, usedIndices){
+  const available = pool.filter((_, i) => !usedIndices.includes(i));
+  if (available.length === 0) { usedIndices.length = 0; }
+  const src = available.length ? available : pool;
+  const idx = pool.indexOf(src[Math.floor(Math.random()*src.length)]);
+  return { idx, q: pool[idx] };
+}
 
 /* ================= CONTENT POOLS (reviewer doc: IT Fundamentals, plus general knowledge) ================= */
 
@@ -570,7 +577,8 @@ function selectRight(id, idx){
 /* ================= HISTORY: NAME THE PIONEER ================= */
 const PIONEER_NEEDED = 4;
 function nextPioneer(id){
-  const q = pioneerQuestions[Math.floor(Math.random()*pioneerQuestions.length)];
+  const { idx, q } = pickQuestion(pioneerQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
   moduleState[id].current = q;
   document.getElementById(id+'-case').textContent = q.text;
   const box = document.getElementById(id+'-choices');
@@ -585,6 +593,7 @@ function nextPioneer(id){
 }
 function initPioneer(id){
   moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
   const body = document.getElementById(id+'-body');
   body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
   renderDots(id+'-dots', PIONEER_NEEDED, 0);
@@ -599,6 +608,7 @@ function answerPioneer(id, opt, btn){
     if(b.textContent===correct) b.classList.add('correct');
     else if(b===btn) b.classList.add('wrong');
   });
+  st.usedIndices.push(st.currentIdx);
   if(opt===correct){
     st.streak++;
     renderDots(id+'-dots', PIONEER_NEEDED, st.streak);
@@ -682,7 +692,8 @@ function nextSortRound(id){
     body.querySelectorAll('.bin2').forEach(b=>{ b.onclick = ()=>answerSort(id, b.dataset.c); });
   } else {
     st.mode = 'mc';
-    const q = elementsMCQuestions[Math.floor(Math.random()*elementsMCQuestions.length)];
+    const { idx, q } = pickQuestion(elementsMCQuestions, st.usedIndices);
+    st.currentIdx = idx;
     st.current = q;
     body.innerHTML = `
       <div class="case2" id="${id}-case">${q.text}</div>
@@ -701,6 +712,7 @@ function nextSortRound(id){
 }
 function initSort(id){
   moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
   nextSortRound(id);
 }
 function answerSort(id, cat){
@@ -724,6 +736,7 @@ function answerElementsMC(id, opt, btn){
     if(b.textContent===correct) b.classList.add('correct');
     else if(b===btn) b.classList.add('wrong');
   });
+  st.usedIndices.push(st.currentIdx);
   if(opt===correct){
     st.streak++;
     if(st.streak>=SORT_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
@@ -737,7 +750,8 @@ function answerElementsMC(id, opt, btn){
 /* ================= SOCIAL & PROFESSIONAL ISSUES DIAL ================= */
 const ETH_NEEDED = 3;
 function nextEthicsCase(id){
-  const q = ethicsQuestions[Math.floor(Math.random()*ethicsQuestions.length)];
+  const { idx, q } = pickQuestion(ethicsQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
   moduleState[id].current = q;
   document.getElementById(id+'-case').textContent = q.text;
   const box = document.getElementById(id+'-choices');
@@ -752,6 +766,7 @@ function nextEthicsCase(id){
 }
 function initEthics(id){
   moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
   const body = document.getElementById(id+'-body');
   body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
   renderDots(id+'-dots', ETH_NEEDED, 0);
@@ -766,6 +781,7 @@ function ruleEthics(id, opt, btn){
     if(b.textContent===correct) b.classList.add('correct');
     else if(b===btn) b.classList.add('wrong');
   });
+  st.usedIndices.push(st.currentIdx);
   if(opt===correct){
     st.streak++;
     renderDots(id+'-dots', ETH_NEEDED, st.streak);

@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web Development — Defusal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#151a22; --panel-edge:#2a323f; --steel:#8a929f;
+    --red:#e2352f; --red-dim:#7a1e1b; --phosphor:#6df7c1; --gold:#f2c14e;
+    --text:#eef1f5; --text-dim:#9aa2b1; --mono:'Space Mono', monospace; --sans:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:#050608; color:var(--text); font-family:var(--sans); min-height:100vh; padding:14px; }
+  .frame{ max-width:1020px;margin:0 auto; border:6px solid var(--red); border-radius:10px; background:#0a0c10; padding:16px; box-shadow:0 0 40px rgba(226,53,47,0.15); }
+  .frame.critical{ animation:critical-pulse .6s infinite; }
+  @keyframes critical-pulse{ 0%,100%{box-shadow:0 0 20px rgba(226,53,47,0.2);} 50%{box-shadow:0 0 55px rgba(226,53,47,0.55);} }
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;}
+  .logo{font-family:var(--mono); font-weight:700; line-height:1.1;}
+  .logo .l1{font-size:20px; letter-spacing:.12em; color:var(--red);}
+  .logo .l2{font-size:11px; letter-spacing:.14em; color:var(--text-dim);}
+  a.homelink{font-family:var(--mono); font-size:11px; color:var(--text-dim); text-decoration:none; border:1px solid var(--panel-edge); border-radius:6px; padding:6px 10px;}
+  a.homelink:hover{border-color:var(--red); color:var(--red);}
+
+  .setup-title{font-family:var(--mono); font-size:13px; letter-spacing:.1em; color:var(--text-dim); text-align:center; margin:20px 0 14px;}
+  .diffbtn{ display:block; width:100%; max-width:460px; margin:0 auto 12px; font-family:var(--mono); font-size:13px; text-align:left; background:var(--panel); border:1px solid var(--panel-edge); color:var(--text); border-radius:8px; padding:14px 16px; cursor:pointer; }
+  .diffbtn b{display:block; font-size:15px; color:var(--phosphor); margin-bottom:3px;}
+  .diffbtn:hover{border-color:var(--phosphor);}
+
+  .timer-wrap{text-align:center; margin:6px auto 14px;}
+  .timer{ display:inline-block; font-family:var(--mono); font-size:42px; font-weight:700; background:#03110a; color:var(--phosphor); border:2px solid #0e3a28; border-radius:8px; padding:6px 22px; letter-spacing:.06em; text-shadow:0 0 10px rgba(109,247,193,.6); }
+  .timer.low{color:var(--red); text-shadow:0 0 14px rgba(226,53,47,.8); border-color:var(--red-dim);}
+  .strikes{font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-top:6px;}
+  .strikes b{color:var(--red);}
+  .solvedcount{font-family:var(--mono); font-size:11px; color:var(--phosphor); margin:6px 0 10px; text-align:center;}
+
+  .sidenav{display:flex; justify-content:center; gap:6px; flex-wrap:wrap; margin-bottom:12px;}
+  .sidebtn{ font-family:var(--mono); font-size:11px; background:var(--panel); border:1px solid var(--panel-edge); color:var(--steel); border-radius:6px; padding:7px 12px; cursor:pointer; }
+  .sidebtn:hover{border-color:var(--gold); color:var(--gold);}
+  .sidebtn.active{border-color:var(--phosphor); color:var(--phosphor);}
+  .backnote{text-align:center; font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-bottom:10px;}
+
+  .sideSection{display:none;}
+  .sideSection.active{display:block;}
+
+  .module-grid{ display:grid; grid-template-columns:repeat(var(--cols,3),1fr); gap:14px; }
+  @media (max-width:820px){ .module-grid{grid-template-columns:1fr 1fr;} }
+  @media (max-width:560px){ .module-grid{grid-template-columns:1fr;} }
+
+  .module{ position:relative; background:var(--panel); border:2px solid var(--panel-edge); border-radius:10px; padding:16px 14px 14px; min-height:190px; }
+  .module.solved{border-color:#1f6b4c;}
+  .led{ position:absolute; top:10px; left:10px; width:12px; height:12px; border-radius:50%; background:#4a0d0b; border:1px solid #300; box-shadow:inset 0 0 3px #000; }
+  .led.on{ background:var(--phosphor); border-color:var(--phosphor); box-shadow:0 0 10px var(--phosphor); }
+  .mtitle{ font-family:var(--mono); font-size:11.5px; letter-spacing:.06em; color:var(--steel); text-transform:uppercase; text-align:center; margin-bottom:10px; }
+  .mbody{font-size:13px;}
+  .progress-dots{display:flex; justify-content:center; gap:6px; margin-top:10px;}
+  .dot{width:8px;height:8px;border-radius:50%; background:#333c48; border:1px solid #444e5e;}
+  .dot.filled{background:var(--phosphor); border-color:var(--phosphor);}
+
+  .shake{animation:shakeit .3s;}
+  @keyframes shakeit{25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
+
+  .wire-row{ display:flex; align-items:center; gap:8px; background:#0e1420; border:1px solid var(--panel-edge); border-radius:6px; padding:8px 10px; margin-bottom:6px; cursor:pointer; font-size:11.5px; }
+  .wire-row:hover{border-color:var(--steel);}
+  .wire-row.cut{opacity:.45; border-color:#1f6b4c; cursor:default; text-decoration:line-through; color:var(--phosphor);}
+  .wire-dot{width:14px;height:6px;border-radius:3px; flex-shrink:0;}
+  .w0{background:#c0392b;} .w1{background:#e2965f;} .w2{background:#f2c14e;} .w3{background:#6df7c1;} .w4{background:#5fa8e2;} .w5{background:#b57bd6;} .w6{background:#5fe2c0;}
+
+  .sort-name{font-family:var(--mono); font-size:15px; text-align:center; margin-bottom:12px; color:var(--text);}
+  .bins2{display:grid; grid-template-columns:1fr 1fr; gap:6px;}
+  .bins2.two{grid-template-columns:1fr 1fr;}
+  .bin2{font-size:11px; font-weight:600; background:#0e1420; border:1px solid var(--panel-edge); border-radius:6px; padding:9px 4px; text-align:center; cursor:pointer;}
+  .bin2:hover{border-color:var(--phosphor); color:var(--phosphor);}
+
+  .case2{font-size:11.5px; line-height:1.5; margin-bottom:10px; color:var(--text);}
+  .choice2{display:block; width:100%; text-align:left; font-size:11px; background:#0e1420; border:1px solid var(--panel-edge); color:var(--text); border-radius:6px; padding:8px 10px; margin-bottom:6px; cursor:pointer;}
+  .choice2:hover{border-color:var(--steel);}
+  .choice2.correct{border-color:var(--phosphor); color:var(--phosphor);}
+  .choice2.wrong{border-color:var(--red); color:var(--red);}
+
+  .connect-wrap{display:flex; gap:10px;}
+  .connect-col{flex:1; display:flex; flex-direction:column; gap:6px;}
+  .connect-item{ font-size:11px; background:#0e1420; border:1px solid var(--panel-edge); color:var(--text); border-radius:6px; padding:8px 6px; text-align:center; cursor:pointer; }
+  .connect-item:hover{border-color:var(--steel);}
+  .connect-item.selected{border-color:var(--gold); color:var(--gold);}
+  .connect-item.solved{border-color:#1f6b4c; color:var(--phosphor); opacity:.6; cursor:default;}
+
+  button.action{font-family:var(--sans); font-weight:600; font-size:13px; background:var(--steel); color:#111; border:none; border-radius:6px; padding:8px 12px; cursor:pointer; width:100%;}
+  button.action:hover{background:#a9b2bf;}
+
+  .overlay{ position:fixed; inset:0; background:rgba(3,4,6,0.92); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .overlay.active{display:flex;}
+  .overlay-card{ text-align:center; max-width:360px; width:100%; background:var(--panel); border:2px solid var(--panel-edge); border-radius:12px; padding:28px 20px; }
+  .overlay-card.win{border-color:var(--phosphor);}
+  .overlay-card.lose{border-color:var(--red);}
+  .overlay-big{font-family:var(--mono); font-size:26px; margin-bottom:8px;}
+  .overlay-card.win .overlay-big{color:var(--phosphor);}
+  .overlay-card.lose .overlay-big{color:var(--red);}
+  .overlay-sub{color:var(--text-dim); font-size:13px; margin-bottom:18px;}
+</style>
+</head>
+<body>
+<div class="frame" id="frame">
+  <div class="topbar">
+    <a class="homelink" href="index.html">&larr; HOME</a>
+    <div class="logo" style="text-align:right;">
+      <div class="l1">DEFUSAL</div>
+      <div class="l2">WEB DEVELOPMENT</div>
+    </div>
+  </div>
+
+  <div id="setup">
+    <div class="setup-title">SELECT DIFFICULTY</div>
+    <button class="diffbtn" onclick="startGame('easy')"><b>EASY</b>4 modules per side · front &amp; back · 2:00 on the clock</button>
+    <button class="diffbtn" onclick="startGame('medium')"><b>MEDIUM</b>6 modules per side (3×2) · front &amp; back · 2:00 on the clock</button>
+    <button class="diffbtn" onclick="startGame('hard')"><b>HARD</b>8 modules per side · front, back, left, right &amp; bottom · 7:00 on the clock — only the front shows the clock</button>
+  </div>
+
+  <div id="game" style="display:none;">
+    <div class="sidenav" id="sideNav"></div>
+    <div id="sidesContainer"></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-card" id="overlay-card">
+    <div class="overlay-big" id="overlay-big">—</div>
+    <div class="overlay-sub" id="overlay-sub">—</div>
+    <button class="action" onclick="location.reload()">TRY AGAIN</button>
+  </div>
+</div>
+
+<script>
+function shuffle(arr){ return [...arr].sort(()=>Math.random()-0.5); }
+function fmt(t){ const m=Math.floor(t/60).toString().padStart(2,'0'); const s=Math.floor(t%60).toString().padStart(2,'0'); return m+':'+s; }
+function pickQuestion(pool, usedIndices){
+  const available = pool.filter((_, i) => !usedIndices.includes(i));
+  if (available.length === 0) { usedIndices.length = 0; }
+  const src = available.length ? available : pool;
+  const idx = pool.indexOf(src[Math.floor(Math.random()*src.length)]);
+  return { idx, q: pool[idx] };
+}
+
+/* ================= CONTENT POOLS (based on Web Development reviewer) ================= */
+
+/* -- Intro to the Web: Core Concepts -- */
+const introQuestions = [
+  {text:'The internet is best described as:', options:['A worldwide collection of computer networks','A single large computer','A software application','A type of web browser'], answer:'A worldwide collection of computer networks'},
+  {text:'The World Wide Web (WWW) is:', options:['A service on the internet for linked multimedia documents','The same as the internet','A private network within an organization','A programming language'], answer:'A service on the internet for linked multimedia documents'},
+  {text:'An intranet is:', options:['A private computer network within an organization','A public web service','A type of internet protocol','A web browser'], answer:'A private computer network within an organization'},
+  {text:'In the client-server model, the browser acts as the:', options:['Client','Server','Both client and server','Router'], answer:'Client'},
+  {text:'In the client-server model, who responds to client requests?', options:['Server','Client','Browser','Router'], answer:'Server'},
+  {text:'Which is NOT a popular web browser?', options:['MySQL','Opera','Google Chrome','Mozilla Firefox'], answer:'MySQL'},
+  {text:'ARPANET, the precursor to the internet, was created in:', options:['1969','1983','1990','2000'], answer:'1969'},
+  {text:'The internet started as a project of which US agency?', options:['ARPA (later DARPA)','NASA','FBI','NSA'], answer:'ARPA (later DARPA)'},
+  {text:'TCP/IP became the standard internet protocol in:', options:['1983','1974','1990','1969'], answer:'1983'},
+  {text:'The Domain Name System (DNS) maps:', options:['Domain names to IP addresses','IP addresses to MAC addresses','Email addresses to users','Web pages to servers'], answer:'Domain names to IP addresses'},
+  {text:'Images, animations, and videos account for up to what percentage of page loading time?', options:['60%','30%','80%','20%'], answer:'60%'},
+  {text:'Which protocol uses port 80?', options:['HTTP','HTTPS','FTP','DNS'], answer:'HTTP'},
+  {text:'Which protocol uses port 443?', options:['HTTPS','HTTP','FTP','SMTP'], answer:'HTTPS'},
+  {text:'FTP stands for:', options:['File Transfer Protocol','Fast Transmission Protocol','File Tracking Protocol','Formatted Text Protocol'], answer:'File Transfer Protocol'},
+  {text:'Who created the World Wide Web?', options:['Tim Berners-Lee','Vinton Cerf','J.C.R. Licklider','Paul Baran'], answer:'Tim Berners-Lee'},
+];
+
+/* -- Internet History: Matching Pairs -- */
+const historyPairs = [
+  {figure:'J.C.R. Licklider', contribution:'Proposed the "Galactic Network" concept'},
+  {figure:'Paul Baran', contribution:'Developed packet switching for military communications'},
+  {figure:'Vinton Cerf & Bob Kahn', contribution:'Developed TCP/IP protocols'},
+  {figure:'Tim Berners-Lee', contribution:'Created the World Wide Web at CERN'},
+  {figure:'ARPANET', contribution:'First computer network linking four US universities (1969)'},
+  {figure:'Mosaic', contribution:'First graphical web browser (later Netscape)'},
+  {figure:'Donald Davies', contribution:'Demonstrated packet switching at NPL in the UK'},
+];
+
+/* -- Web Protocols: Matching Pairs -- */
+const protocolPairs = [
+  {protocol:'HTTP', description:'Transfers web pages — port 80'},
+  {protocol:'HTTPS', description:'Encrypted HTTP using SSL/TLS — port 443'},
+  {protocol:'FTP', description:'Transfers files between computers — port 21'},
+  {protocol:'DNS', description:'Converts domain names to IP addresses — port 53'},
+  {protocol:'SMTP', description:'Sends email messages — port 25'},
+  {protocol:'TCP/IP', description:'Core protocols for data transmission and routing'},
+];
+
+/* -- Web Design Principles: MC -- */
+const designQuestions = [
+  {text:'How many colors should a website typically use at most?', options:['2-3','5-6','8-10','Only 1'], answer:'2-3'},
+  {text:'Body text should usually use which font type?', options:['Sans-serif','Serif','Script','Monospace'], answer:'Sans-serif'},
+  {text:'Headlines should be reserved for which font type?', options:['Serif','Sans-serif','Script','Display'], answer:'Serif'},
+  {text:'What is the maximum recommended number of different fonts per site?', options:['3','5','1','Unlimited'], answer:'3'},
+  {text:'The "F Pattern" describes how users:', options:['Scan content horizontally across top, then down left','Read content vertically from top to bottom','Focus on images first','Click on the first link they see'], answer:'Scan content horizontally across top, then down left'},
+  {text:'Standard screen resolution for web images is:', options:['72 ppi','300 ppi','150 ppi','96 ppi'], answer:'72 ppi'},
+  {text:'Which site structure is best for online tutorials?', options:['Linear','Hierarchical','Random','Webbed'], answer:'Linear'},
+  {text:'Which site structure uses a tree-like organization?', options:['Hierarchical','Linear','Random','Flat'], answer:'Hierarchical'},
+  {text:'Which site structure allows pages in any order with no fixed path?', options:['Random','Linear','Hierarchical','Sequential'], answer:'Random'},
+  {text:'How many planning steps are there for building a website?', options:['6','4','5','7'], answer:'6'},
+  {text:'The first step in planning a website is:', options:['Create the Goal or Purpose','Plan the Content','Identify the Target Audience','Design the Navigation'], answer:'Create the Goal or Purpose'},
+  {text:'Which tool is a content management system (CMS)?', options:['WordPress','Figma','Sketch','Adobe XD'], answer:'WordPress'},
+  {text:'Which tool is used for collaborative interface design and prototyping?', options:['Figma','WordPress','Wix','Dreamweaver'], answer:'Figma'},
+  {text:'What percentage of page loading time do images, animations, and videos account for?', options:['Up to 60%','Up to 30%','Up to 80%','Up to 10%'], answer:'Up to 60%'},
+  {text:'Images should not be used as:', options:['Space fillers','Value-adding content','Visual aids','Illustrations'], answer:'Space fillers'},
+];
+
+/* -- Planning a Website: click-in-order (6 steps) -- */
+const sitePlanningSteps = [
+  'Create the Goal or Purpose',
+  'Identify the Primary Target Audience',
+  'Plan the Content',
+  'Plan and Organize Site Structure',
+  'Plan the Web Page Details',
+  'Plan and Design the Navigation Scheme',
+];
+
+/* -- HTML Fundamentals: MC -- */
+const htmlBasicsQuestions = [
+  {text:'HTML stands for:', options:['HyperText Markup Language','HyperText Machine Language','Home Tool Markup Language','High Tech Markup Language'], answer:'HyperText Markup Language'},
+  {text:'Which tag is the root element of an HTML page?', options:['<html>','<head>','<body>','<!DOCTYPE html>'], answer:'<html>'},
+  {text:'Where does the visible page content go?', options:['<body>','<head>','<title>','<!DOCTYPE html>'], answer:'<body>'},
+  {text:'The <!DOCTYPE html> declaration:', options:['Declares the document as HTML5','Is an HTML tag','Must appear inside <html>','Is optional'], answer:'Declares the document as HTML5'},
+  {text:'Which is an example of an empty (self-closing) HTML element?', options:['<br>','<p>','<h1>','<div>'], answer:'<br>'},
+  {text:'What is HTML5?', options:['The fifth and current version of HTML','A programming language','A web server','A database system'], answer:'The fifth and current version of HTML'},
+  {text:'Which HTML5 element is used for navigation links?', options:['<nav>','<header>','<footer>','<aside>'], answer:'<nav>'},
+  {text:'Which HTML5 element is used for self-contained content like a blog post?', options:['<article>','<section>','<div>','<span>'], answer:'<article>'},
+  {text:'The <canvas> element in HTML5 is used for:', options:['Drawing graphics via JavaScript','Displaying video','Showing audio controls','Storing data'], answer:'Drawing graphics via JavaScript'},
+  {text:'HTML5 introduced native support for:', options:['Audio and video','Flash animations','Java applets','ActiveX controls'], answer:'Audio and video'},
+  {text:'What does a web browser do with HTML tags?', options:['Uses them to render content without displaying the tags','Displays them as text on the page','Hides them from the view source','Converts them to PDF'], answer:'Uses them to render content without displaying the tags'},
+  {text:'HTML tags normally come in:', options:['Pairs (start and end tag)','Singles only','Triplets','Groups of four'], answer:'Pairs (start and end tag)'},
+  {text:'An advantage of HTML5 is:', options:['All modern browsers support it','It requires no CSS','It replaces JavaScript','It eliminates the need for servers'], answer:'All modern browsers support it'},
+  {text:'A disadvantage of HTML5 is:', options:['Older browsers may not fully support it','It is too fast','It cannot display images','It requires a database'], answer:'Older browsers may not fully support it'},
+  {text:'Which HTML5 element represents a thematic grouping of content?', options:['<section>','<article>','<div>','<span>'], answer:'<section>'},
+];
+
+/* -- HTML5 Elements: two-bin sort (Semantic vs Multimedia) -- */
+const html5SortItems = [
+  {text:'<article>', answer:'Semantic'},
+  {text:'<aside>', answer:'Semantic'},
+  {text:'<header>', answer:'Semantic'},
+  {text:'<footer>', answer:'Semantic'},
+  {text:'<nav>', answer:'Semantic'},
+  {text:'<section>', answer:'Semantic'},
+  {text:'<figure>', answer:'Semantic'},
+  {text:'<main>', answer:'Semantic'},
+  {text:'<details>', answer:'Semantic'},
+  {text:'<summary>', answer:'Semantic'},
+  {text:'<figcaption>', answer:'Semantic'},
+  {text:'<audio>', answer:'Multimedia'},
+  {text:'<video>', answer:'Multimedia'},
+  {text:'<canvas>', answer:'Multimedia'},
+  {text:'<svg>', answer:'Multimedia'},
+  {text:'<embed>', answer:'Multimedia'},
+  {text:'<source>', answer:'Multimedia'},
+  {text:'<track>', answer:'Multimedia'},
+  {text:'<mark>', answer:'Semantic'},
+];
+
+/* -- HTML Attributes: Matching Pairs -- */
+const attributePairs = [
+  {attr:'href', purpose:'Specifies the URL of a link'},
+  {attr:'src', purpose:'Specifies the source file URL'},
+  {attr:'alt', purpose:'Alternative text if image cannot display'},
+  {attr:'style', purpose:'Inline CSS styling'},
+  {attr:'lang', purpose:'Language of the document content'},
+  {attr:'title', purpose:'Tooltip text on hover'},
+  {attr:'id', purpose:'Unique identifier for the element'},
+  {attr:'class', purpose:'CSS class for styling'},
+  {attr:'width', purpose:'Width of the element in pixels'},
+  {attr:'height', purpose:'Height of the element in pixels'},
+];
+
+/* -- Creating HTML Documents: MC -- */
+const htmlCreationQuestions = [
+  {text:'Which tag defines the largest heading?', options:['<h1>','<h6>','<head>','<header>'], answer:'<h1>'},
+  {text:'How many <h1> tags should a page have for good SEO?', options:['One','As many as needed','One per section','None'], answer:'One'},
+  {text:'Which tag defines a paragraph?', options:['<p>','<para>','<text>','<div>'], answer:'<p>'},
+  {text:'Which attribute is required for the <img> tag?', options:['src','href','style','class'], answer:'src'},
+  {text:'Why is the alt attribute important for images?', options:['For accessibility and fallback text','To make images load faster','To change image color','To resize images'], answer:'For accessibility and fallback text'},
+  {text:'Which tag creates an unordered list?', options:['<ul>','<ol>','<li>','<dl>'], answer:'<ul>'},
+  {text:'Which tag creates an ordered list?', options:['<ol>','<ul>','<li>','<dl>'], answer:'<ol>'},
+  {text:'Which tag inserts a single line break?', options:['<br>','<hr>','<break>','<lb>'], answer:'<br>'},
+  {text:'Which tag displays text exactly as written, preserving spaces and line breaks?', options:['<pre>','<p>','<code>','<blockquote>'], answer:'<pre>'},
+  {text:'Which tag defines bold text with semantic importance?', options:['<strong>','<b>','<bold>','<em>'], answer:'<strong>'},
+  {text:'Which tag defines italic text with semantic emphasis?', options:['<em>','<i>','<italic>','<cite>'], answer:'<em>'},
+  {text:'How do you write a comment in HTML?', options:['<!-- comment -->','// comment','/* comment */','# comment'], answer:'<!-- comment -->'},
+  {text:'Which tag embeds audio content?', options:['<audio>','<sound>','<music>','<voice>'], answer:'<audio>'},
+  {text:'Which attribute adds tooltip text on hover?', options:['title','alt','tooltip','hover'], answer:'title'},
+  {text:'Which tag is used for subscript text?', options:['<sub>','<sup>','<small>','<mark>'], answer:'<sub>'},
+  {text:'Which tag defines a horizontal rule?', options:['<hr>','<br>','<line>','<rule>'], answer:'<hr>'},
+  {text:'Which tag is used for highlighted/marked text?', options:['<mark>','<highlight>','<b>','<em>'], answer:'<mark>'},
+  {text:'Which file format is best for photos on the web?', options:['JPEG','GIF','PNG','SVG'], answer:'JPEG'},
+  {text:'The <video> tag requires which attribute to show controls?', options:['controls','play','show','display'], answer:'controls'},
+  {text:'What does the <!DOCTYPE html> tag do?', options:['Declares the document as HTML5','Starts the body section','Defines a heading','Creates a paragraph'], answer:'Declares the document as HTML5'},
+];
+
+/* ================= GLOBAL BOMB STATE ================= */
+const ALL_TYPES = ['web_intro','web_history','web_protocols','design_principles','site_steps','html_basics','html5_elements','html_attributes','html_creation'];
+const typeLabels = {
+  web_intro:'The Web — Core Concepts',
+  web_history:'Internet History — Connect the Wires',
+  web_protocols:'Web Protocols — Match the Port',
+  design_principles:'Web Design — Principles & Planning',
+  site_steps:'Planning a Website — Order the Stages',
+  html_basics:'HTML — Core Concepts',
+  html5_elements:'HTML5 — Sort the Elements',
+  html_attributes:'HTML Attributes — Connect the Pair',
+  html_creation:'HTML Documents — Create It',
+};
+
+let timeLeft = 0, mistakes = 0, bombTimer = null;
+let moduleState = {};
+let allModuleIds = [];
+let solvedCount = 0;
+let instanceCounters = {};
+ALL_TYPES.forEach(t=>instanceCounters[t]=0);
+const romanSuffix = ['', ' II', ' III', ' IV', ' V', ' VI'];
+
+function updateTimerDisplay(){
+  const el = document.getElementById('timer');
+  if(!el) return;
+  el.textContent = fmt(timeLeft);
+  el.classList.toggle('low', timeLeft<=30);
+  document.getElementById('frame').classList.toggle('critical', timeLeft<=15);
+}
+function startBomb(){
+  updateTimerDisplay();
+  bombTimer = setInterval(()=>{
+    timeLeft--;
+    if(timeLeft<=0){ timeLeft=0; updateTimerDisplay(); explode(); return; }
+    updateTimerDisplay();
+  },1000);
+}
+function penalize(id){
+  mistakes++;
+  timeLeft = Math.max(0, timeLeft-10);
+  updateTimerDisplay();
+  const el = document.getElementById(id);
+  if(el){ el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'),300); }
+  if(timeLeft<=0) explode();
+}
+function updateSolvedCounts(){
+  document.querySelectorAll('.solvedcount').forEach(el=>{
+    el.textContent = 'SOLVED '+solvedCount+'/'+allModuleIds.length;
+  });
+}
+function markSolved(id){
+  if(moduleState[id].solved) return;
+  moduleState[id].solved = true;
+  document.getElementById(id+'-led').classList.add('on');
+  document.getElementById(id).classList.add('solved');
+  solvedCount++;
+  updateSolvedCounts();
+  if(solvedCount>=allModuleIds.length) defuse();
+}
+function explode(){
+  clearInterval(bombTimer);
+  const card = document.getElementById('overlay-card');
+  card.className = 'overlay-card lose';
+  document.getElementById('overlay-big').textContent = 'BOOM';
+  document.getElementById('overlay-sub').textContent = 'The clock ran out with '+(allModuleIds.length-solvedCount)+' module(s) still live. Mistakes made: '+mistakes+'.';
+  document.getElementById('overlay').classList.add('active');
+}
+function defuse(){
+  clearInterval(bombTimer);
+  const card = document.getElementById('overlay-card');
+  card.className = 'overlay-card win';
+  document.getElementById('overlay-big').textContent = 'DEFUSED';
+  document.getElementById('overlay-sub').textContent = 'All '+allModuleIds.length+' modules cleared with '+fmt(timeLeft)+' left on the clock, and '+mistakes+' mistake(s) made.';
+  document.getElementById('overlay').classList.add('active');
+}
+function renderDots(containerId, count, filled){
+  const c = document.getElementById(containerId);
+  if(!c) return;
+  c.innerHTML='';
+  for(let i=0;i<count;i++){
+    const d = document.createElement('span');
+    d.className = 'dot'+(i<filled?' filled':'');
+    c.appendChild(d);
+  }
+}
+function switchSide(name){
+  document.querySelectorAll('.sideSection').forEach(s=>s.classList.remove('active'));
+  document.getElementById('side-'+name).classList.add('active');
+  document.querySelectorAll('.sidebtn').forEach(b=>b.classList.toggle('active', b.dataset.side===name));
+}
+
+/* ================= MODULE SHELL ================= */
+function moduleShell(id, label){
+  const div = document.createElement('div');
+  div.className='module';
+  div.id=id;
+  div.innerHTML = `<div class="led" id="${id}-led"></div><div class="mtitle">${label}</div><div class="mbody" id="${id}-body"></div>`;
+  return div;
+}
+function createModule(type, gridEl){
+  const num = ++instanceCounters[type];
+  const id = type+'-'+num;
+  const label = typeLabels[type] + (romanSuffix[num-1] || ' '+num);
+  const el = moduleShell(id, label);
+  gridEl.appendChild(el);
+  allModuleIds.push(id);
+  moduleState[id] = {type, solved:false};
+  const initFns = {
+    web_intro: initWebIntro, web_history: initWebHistory, web_protocols: initWebProtocols,
+    design_principles: initDesignPrinciples, site_steps: initSiteSteps, html_basics: initHtmlBasics,
+    html5_elements: initHtml5Elements, html_attributes: initHtmlAttributes, html_creation: initHtmlCreation,
+  };
+  initFns[type](id);
+}
+
+/* ================= WEB INTRO (multiple choice) ================= */
+const MC_NEEDED = 3;
+function nextWebIntro(id){
+  const { idx, q } = pickQuestion(introQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
+  moduleState[id].current = q;
+  document.getElementById(id+'-case').textContent = q.text;
+  const box = document.getElementById(id+'-choices');
+  box.innerHTML='';
+  shuffle(q.options).forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='choice2';
+    btn.textContent = opt;
+    btn.onclick = ()=>answerWebIntro(id, opt, btn);
+    box.appendChild(btn);
+  });
+}
+function initWebIntro(id){
+  moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
+  renderDots(id+'-dots', MC_NEEDED, 0);
+  nextWebIntro(id);
+}
+function answerWebIntro(id, opt, btn){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const correct = st.current.answer;
+  document.querySelectorAll('#'+id+'-choices .choice2').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  st.usedIndices.push(st.currentIdx);
+  if(opt===correct){
+    st.streak++;
+    renderDots(id+'-dots', MC_NEEDED, st.streak);
+    if(st.streak>=MC_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', MC_NEEDED, 0);
+    penalize(id);
+  }
+  setTimeout(()=>nextWebIntro(id), 700);
+}
+
+/* ================= WEB HISTORY (matching pairs) ================= */
+function initWebHistory(id){
+  const left = shuffle(historyPairs.map((p,i)=>({label:p.figure, pairIdx:i})));
+  const right = shuffle(historyPairs.map((p,i)=>({label:p.contribution, pairIdx:i})));
+  moduleState[id].left = left;
+  moduleState[id].right = right;
+  moduleState[id].selectedLeft = null;
+  moduleState[id].solvedPairs = 0;
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="connect-wrap">
+      <div class="connect-col" id="${id}-left"></div>
+      <div class="connect-col" id="${id}-right"></div>
+    </div>`;
+  const leftCol = document.getElementById(id+'-left');
+  left.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className='connect-item';
+    div.textContent = item.label;
+    div.onclick = ()=>selectWebHistoryLeft(id, idx);
+    leftCol.appendChild(div);
+  });
+  const rightCol = document.getElementById(id+'-right');
+  right.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className='connect-item';
+    div.textContent = item.label;
+    div.onclick = ()=>selectWebHistoryRight(id, idx);
+    rightCol.appendChild(div);
+  });
+}
+function selectWebHistoryLeft(id, idx){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const leftEls = document.querySelectorAll('#'+id+'-left .connect-item');
+  if(leftEls[idx].classList.contains('solved')) return;
+  leftEls.forEach(e=>e.classList.remove('selected'));
+  leftEls[idx].classList.add('selected');
+  st.selectedLeft = idx;
+}
+function selectWebHistoryRight(id, idx){
+  const st = moduleState[id];
+  if(st.solved || st.selectedLeft===null) return;
+  const rightEls = document.querySelectorAll('#'+id+'-right .connect-item');
+  if(rightEls[idx].classList.contains('solved')) return;
+  const leftEls = document.querySelectorAll('#'+id+'-left .connect-item');
+  const leftPick = st.left[st.selectedLeft];
+  const rightPick = st.right[idx];
+  if(leftPick.pairIdx === rightPick.pairIdx){
+    leftEls[st.selectedLeft].classList.add('solved');
+    leftEls[st.selectedLeft].classList.remove('selected');
+    rightEls[idx].classList.add('solved');
+    st.selectedLeft = null;
+    st.solvedPairs++;
+    if(st.solvedPairs>=historyPairs.length) markSolved(id);
+  } else {
+    penalize(id);
+    leftEls.forEach(e=>e.classList.remove('selected'));
+    st.selectedLeft = null;
+  }
+}
+
+/* ================= WEB PROTOCOLS (matching pairs) ================= */
+function initWebProtocols(id){
+  const left = shuffle(protocolPairs.map((p,i)=>({label:p.protocol, pairIdx:i})));
+  const right = shuffle(protocolPairs.map((p,i)=>({label:p.description, pairIdx:i})));
+  moduleState[id].left = left;
+  moduleState[id].right = right;
+  moduleState[id].selectedLeft = null;
+  moduleState[id].solvedPairs = 0;
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="connect-wrap">
+      <div class="connect-col" id="${id}-left"></div>
+      <div class="connect-col" id="${id}-right"></div>
+    </div>`;
+  const leftCol = document.getElementById(id+'-left');
+  left.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className='connect-item';
+    div.textContent = item.label;
+    div.onclick = ()=>selectWebProtocolsLeft(id, idx);
+    leftCol.appendChild(div);
+  });
+  const rightCol = document.getElementById(id+'-right');
+  right.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className='connect-item';
+    div.textContent = item.label;
+    div.onclick = ()=>selectWebProtocolsRight(id, idx);
+    rightCol.appendChild(div);
+  });
+}
+function selectWebProtocolsLeft(id, idx){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const leftEls = document.querySelectorAll('#'+id+'-left .connect-item');
+  if(leftEls[idx].classList.contains('solved')) return;
+  leftEls.forEach(e=>e.classList.remove('selected'));
+  leftEls[idx].classList.add('selected');
+  st.selectedLeft = idx;
+}
+function selectWebProtocolsRight(id, idx){
+  const st = moduleState[id];
+  if(st.solved || st.selectedLeft===null) return;
+  const rightEls = document.querySelectorAll('#'+id+'-right .connect-item');
+  if(rightEls[idx].classList.contains('solved')) return;
+  const leftEls = document.querySelectorAll('#'+id+'-left .connect-item');
+  const leftPick = st.left[st.selectedLeft];
+  const rightPick = st.right[idx];
+  if(leftPick.pairIdx === rightPick.pairIdx){
+    leftEls[st.selectedLeft].classList.add('solved');
+    leftEls[st.selectedLeft].classList.remove('selected');
+    rightEls[idx].classList.add('solved');
+    st.selectedLeft = null;
+    st.solvedPairs++;
+    if(st.solvedPairs>=protocolPairs.length) markSolved(id);
+  } else {
+    penalize(id);
+    leftEls.forEach(e=>e.classList.remove('selected'));
+    st.selectedLeft = null;
+  }
+}
+
+/* ================= DESIGN PRINCIPLES (multiple choice) ================= */
+function nextDesignPrinciples(id){
+  const { idx, q } = pickQuestion(designQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
+  moduleState[id].current = q;
+  document.getElementById(id+'-case').textContent = q.text;
+  const box = document.getElementById(id+'-choices');
+  box.innerHTML='';
+  shuffle(q.options).forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='choice2';
+    btn.textContent = opt;
+    btn.onclick = ()=>answerDesignPrinciples(id, opt, btn);
+    box.appendChild(btn);
+  });
+}
+function initDesignPrinciples(id){
+  moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
+  renderDots(id+'-dots', MC_NEEDED, 0);
+  nextDesignPrinciples(id);
+}
+function answerDesignPrinciples(id, opt, btn){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const correct = st.current.answer;
+  document.querySelectorAll('#'+id+'-choices .choice2').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  st.usedIndices.push(st.currentIdx);
+  if(opt===correct){
+    st.streak++;
+    renderDots(id+'-dots', MC_NEEDED, st.streak);
+    if(st.streak>=MC_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', MC_NEEDED, 0);
+    penalize(id);
+  }
+  setTimeout(()=>nextDesignPrinciples(id), 700);
+}
+
+/* ================= SITE STEPS (click in order) ================= */
+function initSiteSteps(id){
+  const order = shuffle(sitePlanningSteps.map((s,i)=>({label:s, rank:i})));
+  moduleState[id].order = order;
+  moduleState[id].pointer = 0;
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div id="${id}-list"></div>`;
+  const list = document.getElementById(id+'-list');
+  order.forEach((u, idx)=>{
+    const row = document.createElement('div');
+    row.className='wire-row';
+    row.innerHTML = `<span class="wire-dot w${idx%7}"></span><span>${u.label}</span>`;
+    row.onclick = ()=>clickSiteSteps(id, idx);
+    list.appendChild(row);
+  });
+}
+function clickSiteSteps(id, idx){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const rows = document.querySelectorAll('#'+id+'-list .wire-row');
+  const row = rows[idx];
+  if(row.classList.contains('cut')) return;
+  if(st.order[idx].rank === st.pointer){
+    row.classList.add('cut');
+    st.pointer++;
+    if(st.pointer>=st.order.length) markSolved(id);
+  } else {
+    penalize(id);
+    rows.forEach(r=>r.classList.remove('cut'));
+    st.pointer = 0;
+  }
+}
+
+/* ================= HTML BASICS (multiple choice) ================= */
+function nextHtmlBasics(id){
+  const { idx, q } = pickQuestion(htmlBasicsQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
+  moduleState[id].current = q;
+  document.getElementById(id+'-case').textContent = q.text;
+  const box = document.getElementById(id+'-choices');
+  box.innerHTML='';
+  shuffle(q.options).forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='choice2';
+    btn.textContent = opt;
+    btn.onclick = ()=>answerHtmlBasics(id, opt, btn);
+    box.appendChild(btn);
+  });
+}
+function initHtmlBasics(id){
+  moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
+  renderDots(id+'-dots', MC_NEEDED, 0);
+  nextHtmlBasics(id);
+}
+function answerHtmlBasics(id, opt, btn){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const correct = st.current.answer;
+  document.querySelectorAll('#'+id+'-choices .choice2').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  st.usedIndices.push(st.currentIdx);
+  if(opt===correct){
+    st.streak++;
+    renderDots(id+'-dots', MC_NEEDED, st.streak);
+    if(st.streak>=MC_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', MC_NEEDED, 0);
+    penalize(id);
+  }
+  setTimeout(()=>nextHtmlBasics(id), 700);
+}
+
+/* ================= HTML5 ELEMENTS (two-bin sort) ================= */
+const TWO_NEEDED = 3;
+function nextHtml5Elements(id){
+  const item = html5SortItems[Math.floor(Math.random()*html5SortItems.length)];
+  moduleState[id].current = item;
+  document.getElementById(id+'-name').textContent = item.text;
+}
+function initHtml5Elements(id){
+  moduleState[id].streak = 0;
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `
+    <div class="sort-name" id="${id}-name">—</div>
+    <div class="bins2 two">
+      <div class="bin2" data-c="Semantic">SEMANTIC</div>
+      <div class="bin2" data-c="Multimedia">MULTIMEDIA</div>
+    </div>
+    <div class="progress-dots" id="${id}-dots"></div>`;
+  body.querySelectorAll('.bin2').forEach(b=>{ b.onclick = ()=>answerHtml5Elements(id, b.dataset.c); });
+  renderDots(id+'-dots', TWO_NEEDED, 0);
+  nextHtml5Elements(id);
+}
+function answerHtml5Elements(id, cat){
+  const st = moduleState[id];
+  if(st.solved) return;
+  if(cat === st.current.answer){
+    st.streak++;
+    renderDots(id+'-dots', TWO_NEEDED, st.streak);
+    if(st.streak>=TWO_NEEDED){ markSolved(id); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', TWO_NEEDED, 0);
+    penalize(id);
+  }
+  nextHtml5Elements(id);
+}
+
+/* ================= HTML ATTRIBUTES (matching pairs) ================= */
+function initHtmlAttributes(id){
+  const left = shuffle(attributePairs.map((p,i)=>({label:p.attr, pairIdx:i})));
+  const right = shuffle(attributePairs.map((p,i)=>({label:p.purpose, pairIdx:i})));
+  moduleState[id].left = left;
+  moduleState[id].right = right;
+  moduleState[id].selectedLeft = null;
+  moduleState[id].solvedPairs = 0;
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="connect-wrap">
+      <div class="connect-col" id="${id}-left"></div>
+      <div class="connect-col" id="${id}-right"></div>
+    </div>`;
+  const leftCol = document.getElementById(id+'-left');
+  left.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className='connect-item';
+    div.textContent = item.label;
+    div.onclick = ()=>selectHtmlAttributesLeft(id, idx);
+    leftCol.appendChild(div);
+  });
+  const rightCol = document.getElementById(id+'-right');
+  right.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className='connect-item';
+    div.textContent = item.label;
+    div.onclick = ()=>selectHtmlAttributesRight(id, idx);
+    rightCol.appendChild(div);
+  });
+}
+function selectHtmlAttributesLeft(id, idx){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const leftEls = document.querySelectorAll('#'+id+'-left .connect-item');
+  if(leftEls[idx].classList.contains('solved')) return;
+  leftEls.forEach(e=>e.classList.remove('selected'));
+  leftEls[idx].classList.add('selected');
+  st.selectedLeft = idx;
+}
+function selectHtmlAttributesRight(id, idx){
+  const st = moduleState[id];
+  if(st.solved || st.selectedLeft===null) return;
+  const rightEls = document.querySelectorAll('#'+id+'-right .connect-item');
+  if(rightEls[idx].classList.contains('solved')) return;
+  const leftEls = document.querySelectorAll('#'+id+'-left .connect-item');
+  const leftPick = st.left[st.selectedLeft];
+  const rightPick = st.right[idx];
+  if(leftPick.pairIdx === rightPick.pairIdx){
+    leftEls[st.selectedLeft].classList.add('solved');
+    leftEls[st.selectedLeft].classList.remove('selected');
+    rightEls[idx].classList.add('solved');
+    st.selectedLeft = null;
+    st.solvedPairs++;
+    if(st.solvedPairs>=attributePairs.length) markSolved(id);
+  } else {
+    penalize(id);
+    leftEls.forEach(e=>e.classList.remove('selected'));
+    st.selectedLeft = null;
+  }
+}
+
+/* ================= HTML CREATION (multiple choice) ================= */
+function nextHtmlCreation(id){
+  const { idx, q } = pickQuestion(htmlCreationQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
+  moduleState[id].current = q;
+  document.getElementById(id+'-case').textContent = q.text;
+  const box = document.getElementById(id+'-choices');
+  box.innerHTML='';
+  shuffle(q.options).forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='choice2';
+    btn.textContent = opt;
+    btn.onclick = ()=>answerHtmlCreation(id, opt, btn);
+    box.appendChild(btn);
+  });
+}
+function initHtmlCreation(id){
+  moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
+  renderDots(id+'-dots', MC_NEEDED, 0);
+  nextHtmlCreation(id);
+}
+function answerHtmlCreation(id, opt, btn){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const correct = st.current.answer;
+  document.querySelectorAll('#'+id+'-choices .choice2').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  st.usedIndices.push(st.currentIdx);
+  if(opt===correct){
+    st.streak++;
+    renderDots(id+'-dots', MC_NEEDED, st.streak);
+    if(st.streak>=MC_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', MC_NEEDED, 0);
+    penalize(id);
+  }
+  setTimeout(()=>nextHtmlCreation(id), 700);
+}
+
+/* ================= GAME START ================= */
+const DIFFICULTY_CONFIG = {
+  easy:   {sides:['front','back'], perSide:4, time:120},
+  medium: {sides:['front','back'], perSide:6, time:120},
+  hard:   {sides:['front','back','left','right','bottom'], perSide:8, time:420},
+};
+
+function buildSideSection(sideName, isFirst){
+  const section = document.createElement('div');
+  section.className = 'sideSection'+(isFirst?' active':'');
+  section.id = 'side-'+sideName;
+  let html = '';
+  if(sideName==='front'){
+    html += `<div class="timer-wrap">
+      <div class="timer" id="timer">00:00</div>
+      <div class="strikes">MISTAKES COST <b>-10s</b> EACH</div>
+    </div>`;
+  } else {
+    html += `<div class="backnote">${sideName.toUpperCase()} — no clock here. Return to the FRONT to check the time.</div>`;
+  }
+  html += `<div class="solvedcount">SOLVED 0/0</div>`;
+  html += `<div class="module-grid" id="grid-${sideName}"></div>`;
+  section.innerHTML = html;
+  return section;
+}
+
+function startGame(difficulty){
+  document.getElementById('setup').style.display='none';
+  document.getElementById('game').style.display='block';
+
+  const cfg = DIFFICULTY_CONFIG[difficulty];
+  timeLeft = cfg.time;
+
+  const sidesContainer = document.getElementById('sidesContainer');
+  sidesContainer.innerHTML = '';
+  const nav = document.getElementById('sideNav');
+  nav.innerHTML = '';
+
+  cfg.sides.forEach((sideName, i)=>{
+    const section = buildSideSection(sideName, i===0);
+    sidesContainer.appendChild(section);
+
+    const navBtn = document.createElement('button');
+    navBtn.className = 'sidebtn'+(i===0?' active':'');
+    navBtn.dataset.side = sideName;
+    navBtn.textContent = sideName.toUpperCase();
+    navBtn.onclick = ()=>switchSide(sideName);
+    nav.appendChild(navBtn);
+
+    const gridEl = document.getElementById('grid-'+sideName);
+    gridEl.style.setProperty('--cols', cfg.perSide/2);
+    const sideTypes = shuffle(ALL_TYPES).slice(0, cfg.perSide);
+    sideTypes.forEach(t=>createModule(t, gridEl));
+  });
+
+  updateSolvedCounts();
+  startBomb();
+}
+</script>
+</body>
+</html>

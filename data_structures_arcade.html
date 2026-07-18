@@ -111,6 +111,13 @@ const TOTAL_LEVELS = 6;
 let mistakes = 0;
 
 function shuffle(a){ return [...a].sort(()=>Math.random()-0.5); }
+function pickQuestion(pool, usedIndices){
+  const available = pool.filter((_, i) => !usedIndices.includes(i));
+  if (available.length === 0) { usedIndices.length = 0; }
+  const src = available.length ? available : pool;
+  const idx = pool.indexOf(src[Math.floor(Math.random()*src.length)]);
+  return { idx, q: pool[idx] };
+}
 
 function renderLevelBar(){
   const bar = document.getElementById('levelbar');
@@ -284,6 +291,7 @@ const l3Scenarios = [
   {text:'Undo just got triggered — you need to take the last action off the stack.', answer:'POP'},
 ];
 let l3Streak = 0;
+let l3UsedIndices = [];
 const L3_NEEDED = 4;
 function renderLevel3(){
   const p = document.getElementById('panel');
@@ -296,10 +304,12 @@ function renderLevel3(){
     <div class="feedback" id="l3-fb"></div>
     <button class="nextbtn" id="nextbtn" onclick="goNextLevel()">NEXT LEVEL &rarr;</button>`;
   l3Streak = 0;
+  l3UsedIndices = [];
   nextL3();
 }
 function nextL3(){
-  const q = l3Scenarios[Math.floor(Math.random()*l3Scenarios.length)];
+  const { idx, q } = pickQuestion(l3Scenarios, l3UsedIndices);
+  window.l3CurrentIdx = idx;
   window.l3Current = q;
   document.getElementById('l3-case').textContent = q.text;
   const box = document.getElementById('l3-choices');
@@ -319,6 +329,7 @@ function answerL3(opt, btn){
     if(b.textContent===correct) b.classList.add('correct');
     else if(b===btn) b.classList.add('wrong');
   });
+  l3UsedIndices.push(window.l3CurrentIdx);
   const fb = document.getElementById('l3-fb');
   if(opt===correct){
     l3Streak++;

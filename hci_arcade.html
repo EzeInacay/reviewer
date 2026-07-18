@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HCI — Defusal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#151a22; --panel-edge:#2a323f; --steel:#8a929f;
+    --red:#e2352f; --red-dim:#7a1e1b; --phosphor:#6df7c1; --gold:#f2c14e;
+    --text:#eef1f5; --text-dim:#9aa2b1; --mono:'Space Mono', monospace; --sans:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:#050608; color:var(--text); font-family:var(--sans); min-height:100vh; padding:14px; }
+  .frame{ max-width:1020px;margin:0 auto; border:6px solid var(--red); border-radius:10px; background:#0a0c10; padding:16px; box-shadow:0 0 40px rgba(226,53,47,0.15); }
+  .frame.critical{ animation:critical-pulse .6s infinite; }
+  @keyframes critical-pulse{ 0%,100%{box-shadow:0 0 20px rgba(226,53,47,0.2);} 50%{box-shadow:0 0 55px rgba(226,53,47,0.55);} }
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;}
+  .logo{font-family:var(--mono); font-weight:700; line-height:1.1;}
+  .logo .l1{font-size:20px; letter-spacing:.12em; color:var(--red);}
+  .logo .l2{font-size:11px; letter-spacing:.14em; color:var(--text-dim);}
+  a.homelink{font-family:var(--mono); font-size:11px; color:var(--text-dim); text-decoration:none; border:1px solid var(--panel-edge); border-radius:6px; padding:6px 10px;}
+  a.homelink:hover{border-color:var(--red); color:var(--red);}
+
+  .setup-title{font-family:var(--mono); font-size:13px; letter-spacing:.1em; color:var(--text-dim); text-align:center; margin:20px 0 14px;}
+  .diffbtn{ display:block; width:100%; max-width:460px; margin:0 auto 12px; font-family:var(--mono); font-size:13px; text-align:left; background:var(--panel); border:1px solid var(--panel-edge); color:var(--text); border-radius:8px; padding:14px 16px; cursor:pointer; }
+  .diffbtn b{display:block; font-size:15px; color:var(--phosphor); margin-bottom:3px;}
+  .diffbtn:hover{border-color:var(--phosphor);}
+
+  .timer-wrap{text-align:center; margin:6px auto 14px;}
+  .timer{ display:inline-block; font-family:var(--mono); font-size:42px; font-weight:700; background:#03110a; color:var(--phosphor); border:2px solid #0e3a28; border-radius:8px; padding:6px 22px; letter-spacing:.06em; text-shadow:0 0 10px rgba(109,247,193,.6); }
+  .timer.low{color:var(--red); text-shadow:0 0 14px rgba(226,53,47,.8); border-color:var(--red-dim);}
+  .strikes{font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-top:6px;}
+  .strikes b{color:var(--red);}
+  .solvedcount{font-family:var(--mono); font-size:11px; color:var(--phosphor); margin:6px 0 10px; text-align:center;}
+
+  .sidenav{display:flex; justify-content:center; gap:6px; flex-wrap:wrap; margin-bottom:12px;}
+  .sidebtn{ font-family:var(--mono); font-size:11px; background:var(--panel); border:1px solid var(--panel-edge); color:var(--steel); border-radius:6px; padding:7px 12px; cursor:pointer; }
+  .sidebtn:hover{border-color:var(--gold); color:var(--gold);}
+  .sidebtn.active{border-color:var(--phosphor); color:var(--phosphor);}
+  .backnote{text-align:center; font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-bottom:10px;}
+
+  .sideSection{display:none;}
+  .sideSection.active{display:block;}
+
+  .module-grid{ display:grid; grid-template-columns:repeat(var(--cols,3),1fr); gap:14px; }
+  @media (max-width:820px){ .module-grid{grid-template-columns:1fr 1fr;} }
+  @media (max-width:560px){ .module-grid{grid-template-columns:1fr;} }
+
+  .module{ position:relative; background:var(--panel); border:2px solid var(--panel-edge); border-radius:10px; padding:16px 14px 14px; min-height:190px; }
+  .module.solved{border-color:#1f6b4c;}
+  .led{ position:absolute; top:10px; left:10px; width:12px; height:12px; border-radius:50%; background:#4a0d0b; border:1px solid #300; box-shadow:inset 0 0 3px #000; }
+  .led.on{ background:var(--phosphor); border-color:var(--phosphor); box-shadow:0 0 10px var(--phosphor); }
+  .mtitle{ font-family:var(--mono); font-size:11.5px; letter-spacing:.06em; color:var(--steel); text-transform:uppercase; text-align:center; margin-bottom:10px; }
+  .mbody{font-size:13px;}
+  .progress-dots{display:flex; justify-content:center; gap:6px; margin-top:10px;}
+  .dot{width:8px;height:8px;border-radius:50%; background:#333c48; border:1px solid #444e5e;}
+  .dot.filled{background:var(--phosphor); border-color:var(--phosphor);}
+
+  .shake{animation:shakeit .3s;}
+  @keyframes shakeit{25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
+
+  .wire-row{ display:flex; align-items:center; gap:8px; background:#0e1420; border:1px solid var(--panel-edge); border-radius:6px; padding:8px 10px; margin-bottom:6px; cursor:pointer; font-size:11.5px; }
+  .wire-row:hover{border-color:var(--steel);}
+  .wire-row.cut{opacity:.45; border-color:#1f6b4c; cursor:default; text-decoration:line-through; color:var(--phosphor);}
+  .wire-dot{width:14px;height:6px;border-radius:3px; flex-shrink:0;}
+  .w0{background:#c0392b;} .w1{background:#e2965f;} .w2{background:#f2c14e;} .w3{background:#6df7c1;} .w4{background:#5fa8e2;} .w5{background:#b57bd6;} .w6{background:#5fe2c0;}
+
+  .sort-name{font-family:var(--mono); font-size:15px; text-align:center; margin-bottom:12px; color:var(--text);}
+  .bins2{display:grid; grid-template-columns:1fr 1fr; gap:6px;}
+  .bins2.two{grid-template-columns:1fr 1fr;}
+  .bin2{font-size:11px; font-weight:600; background:#0e1420; border:1px solid var(--panel-edge); border-radius:6px; padding:9px 4px; text-align:center; cursor:pointer;}
+  .bin2:hover{border-color:var(--phosphor); color:var(--phosphor);}
+
+  .case2{font-size:11.5px; line-height:1.5; margin-bottom:10px; color:var(--text);}
+  .choice2{display:block; width:100%; text-align:left; font-size:11px; background:#0e1420; border:1px solid var(--panel-edge); color:var(--text); border-radius:6px; padding:8px 10px; margin-bottom:6px; cursor:pointer;}
+  .choice2:hover{border-color:var(--steel);}
+  .choice2.correct{border-color:var(--phosphor); color:var(--phosphor);}
+  .choice2.wrong{border-color:var(--red); color:var(--red);}
+
+  .connect-wrap{display:flex; gap:10px;}
+  .connect-col{flex:1; display:flex; flex-direction:column; gap:6px;}
+  .connect-item{ font-size:11px; background:#0e1420; border:1px solid var(--panel-edge); color:var(--text); border-radius:6px; padding:8px 6px; text-align:center; cursor:pointer; }
+  .connect-item:hover{border-color:var(--steel);}
+  .connect-item.selected{border-color:var(--gold); color:var(--gold);}
+  .connect-item.solved{border-color:#1f6b4c; color:var(--phosphor); opacity:.6; cursor:default;}
+
+  button.action{font-family:var(--sans); font-weight:600; font-size:13px; background:var(--steel); color:#111; border:none; border-radius:6px; padding:8px 12px; cursor:pointer; width:100%;}
+  button.action:hover{background:#a9b2bf;}
+
+  .overlay{ position:fixed; inset:0; background:rgba(3,4,6,0.92); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .overlay.active{display:flex;}
+  .overlay-card{ text-align:center; max-width:360px; width:100%; background:var(--panel); border:2px solid var(--panel-edge); border-radius:12px; padding:28px 20px; }
+  .overlay-card.win{border-color:var(--phosphor);}
+  .overlay-card.lose{border-color:var(--red);}
+  .overlay-big{font-family:var(--mono); font-size:26px; margin-bottom:8px;}
+  .overlay-card.win .overlay-big{color:var(--phosphor);}
+  .overlay-card.lose .overlay-big{color:var(--red);}
+  .overlay-sub{color:var(--text-dim); font-size:13px; margin-bottom:18px;}
+</style>
+</head>
+<body>
+<div class="frame" id="frame">
+  <div class="topbar">
+    <a class="homelink" href="index.html">&larr; HOME</a>
+    <div class="logo" style="text-align:right;">
+      <div class="l1">DEFUSAL</div>
+      <div class="l2">HCI &amp; DESIGN THINKING</div>
+    </div>
+  </div>
+
+  <div id="setup">
+    <div class="setup-title">SELECT DIFFICULTY</div>
+    <button class="diffbtn" onclick="startGame('easy')"><b>EASY</b>4 modules per side · front &amp; back · 2:00 on the clock</button>
+    <button class="diffbtn" onclick="startGame('medium')"><b>MEDIUM</b>6 modules per side (3×2) · front &amp; back · 2:00 on the clock</button>
+    <button class="diffbtn" onclick="startGame('hard')"><b>HARD</b>8 modules per side · front, back, left, right &amp; bottom · 7:00 on the clock — only the front shows the clock</button>
+  </div>
+
+  <div id="game" style="display:none;">
+    <div class="sidenav" id="sideNav"></div>
+    <div id="sidesContainer"></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-card" id="overlay-card">
+    <div class="overlay-big" id="overlay-big">—</div>
+    <div class="overlay-sub" id="overlay-sub">—</div>
+    <button class="action" onclick="location.reload()">TRY AGAIN</button>
+  </div>
+</div>
+
+<script>
+/* ================= UTIL ================= */
+function shuffle(arr){ return [...arr].sort(()=>Math.random()-0.5); }
+function fmt(t){ const m=Math.floor(t/60).toString().padStart(2,'0'); const s=Math.floor(t%60).toString().padStart(2,'0'); return m+':'+s; }
+function pickQuestion(pool, usedIndices){
+  const available = pool.filter((_, i) => !usedIndices.includes(i));
+  if (available.length === 0) { usedIndices.length = 0; }
+  const src = available.length ? available : pool;
+  const idx = pool.indexOf(src[Math.floor(Math.random()*src.length)]);
+  return { idx, q: pool[idx] };
+}
+
+/* ================= HCI CONTENT POOLS (based on HCI & Design Thinking reviewer) ================= */
+
+/* -- HCI Basics: multiple choice -- */
+const hciBasicsQuestions = [
+  {text:'What does HCI stand for?', options:['Human-Computer Interaction','Hardware-Computer Interface','Human-Centric Integration','High-Capacity Interface'], answer:'Human-Computer Interaction'},
+  {text:'Which of the following is NOT one of the three main components of HCI?', options:['Human (User)','Computer (System)','Network (Connection)','Interaction'], answer:'Network (Connection)'},
+  {text:'Which field contributes to HCI by studying mental models, perception, and memory?', options:['Cognitive Psychology','Industrial Design','Linguistics','Sociology'], answer:'Cognitive Psychology'},
+  {text:'Which field contributes to HCI by studying physical ergonomics and product usability?', options:['Computer Science','Industrial Design','Linguistics','Sociology'], answer:'Industrial Design'},
+  {text:'Which field contributes to HCI by studying natural language processing and dialogue systems?', options:['Linguistics','Cognitive Psychology','Human Factors','Sociology'], answer:'Linguistics'},
+  {text:'Which of the following is a key aspect of HCI?', options:['Usability','Bandwidth','Compilation','Encryption'], answer:'Usability'},
+  {text:'Which of the following is a key aspect of HCI?', options:['Accessibility','Latency','Throughput','Fragmentation'], answer:'Accessibility'},
+  {text:'Which of the following is a key aspect of HCI?', options:['User Experience (UX)','Clock Speed','Cache Size','Pixel Density'], answer:'User Experience (UX)'},
+  {text:'The three main components of HCI are:', options:['Human, Computer, Interaction','Hardware, Software, Network','Input, Process, Output','Sender, Channel, Receiver'], answer:'Human, Computer, Interaction'},
+  {text:'HCI is described as multidisciplinary because it draws from:', options:['Computer Science, Psychology, Design, and more','Only Computer Science','Only Psychology and Design','Only Engineering and Art'], answer:'Computer Science, Psychology, Design, and more'},
+  {text:'Which field contributes to HCI by studying social computing and online communities?', options:['Sociology','Cognitive Psychology','Industrial Design','Human Factors'], answer:'Sociology'},
+  {text:'Which field contributes to HCI by studying anthropometry and human performance?', options:['Human Factors','Linguistics','Computer Science','Sociology'], answer:'Human Factors'},
+  {text:'The quality of interaction in HCI depends on how well the system accommodates:', options:['Human capabilities and limitations','Network bandwidth','Storage capacity','Processor speed'], answer:'Human capabilities and limitations'},
+];
+
+/* -- Evolution: Matching pairs (era → innovation) -- */
+const evolutionPairs = [
+  {era:'1940s–1960s', innovation:'Punch cards, batch processing, experts only'},
+  {era:'1970s–1980s', innovation:'GUI, mouse, icons, windows (Xerox PARC, Mac)'},
+  {era:'1990s–2000s', innovation:'Web, mobile, smartphones, touchscreens'},
+  {era:'2010s–Present', innovation:'NUI, AI, VR/AR, voice, gestures, haptics'},
+];
+
+/* -- HCD Process: click in order -- */
+const hcdStages = ['Research & User Study','Ideation & Prototyping','Usability Testing & Iteration','Implementation'];
+
+/* -- Heuristics: multiple choice (scenario → which heuristic) -- */
+const heuristicQuestions = [
+  {text:'A progress bar shows upload status. Which heuristic does this satisfy?', options:['Visibility of System Status','Match Between System & Real World','User Control and Freedom','Consistency and Standards'], answer:'Visibility of System Status'},
+  {text:'Airbnb uses "Check-in" and "Check-out" instead of "start_date" and "end_date". Which heuristic does this satisfy?', options:['Match Between System & Real World','Visibility of System Status','Aesthetic and Minimalist Design','Help and Documentation'], answer:'Match Between System & Real World'},
+  {text:'Gmail offers an "Undo Send" option after sending an email. Which heuristic does this satisfy?', options:['User Control and Freedom','Error Prevention','Consistency and Standards','Flexibility and Efficiency of Use'], answer:'User Control and Freedom'},
+  {text:'All links on a website are underlined and blue; all buttons have the same style. Which heuristic does this satisfy?', options:['Consistency and Standards','Aesthetic and Minimalist Design','Recognition Rather Than Recall','Help and Documentation'], answer:'Consistency and Standards'},
+  {text:'A form disables the Submit button until all required fields are filled. Which heuristic does this satisfy?', options:['Error Prevention','User Control and Freedom','Visibility of System Status','Help Users Recognize, Diagnose, and Recover from Errors'], answer:'Error Prevention'},
+  {text:'A navigation menu is always visible on the page so users do not have to remember where things are. Which heuristic does this satisfy?', options:['Recognition Rather Than Recall','Aesthetic and Minimalist Design','Flexibility and Efficiency of Use','Consistency and Standards'], answer:'Recognition Rather Than Recall'},
+  {text:'Keyboard shortcuts like Ctrl+S to save allow expert users to work faster. Which heuristic does this satisfy?', options:['Flexibility and Efficiency of Use','User Control and Freedom','Consistency and Standards','Help and Documentation'], answer:'Flexibility and Efficiency of Use'},
+  {text:'Google homepage shows only a search bar and logo — no clutter. Which heuristic does this satisfy?', options:['Aesthetic and Minimalist Design','Visibility of System Status','Match Between System & Real World','Recognition Rather Than Recall'], answer:'Aesthetic and Minimalist Design'},
+  {text:'An error message says "Your password must be at least 8 characters" instead of "Invalid input". Which heuristic does this satisfy?', options:['Help Users Recognize, Diagnose, and Recover from Errors','Error Prevention','Visibility of System Status','Consistency and Standards'], answer:'Help Users Recognize, Diagnose, and Recover from Errors'},
+  {text:'A searchable FAQ or knowledge base is provided for users who need extra guidance. Which heuristic does this satisfy?', options:['Help and Documentation','Flexibility and Efficiency of Use','User Control and Freedom','Recognition Rather Than Recall'], answer:'Help and Documentation'},
+  {text:'A "Back" button or breadcrumb navigation lets users return to the previous page. Which heuristic does this satisfy?', options:['User Control and Freedom','Error Prevention','Consistency and Standards','Help and Documentation'], answer:'User Control and Freedom'},
+  {text:'A settings page shows only icons without tooltips or labels, forcing users to memorize what each icon means. Which heuristic is VIOLATED?', options:['Recognition Rather Than Recall','Aesthetic and Minimalist Design','Flexibility and Efficiency of Use','Help and Documentation'], answer:'Recognition Rather Than Recall'},
+  {text:'A cluttered dashboard with 20 widgets, graphs, and redundant data overwhelms users. Which heuristic is VIOLATED?', options:['Aesthetic and Minimalist Design','Visibility of System Status','Consistency and Standards','Error Prevention'], answer:'Aesthetic and Minimalist Design'},
+  {text:'A form submits silently with no confirmation — the user is unsure if it worked. Which heuristic is VIOLATED?', options:['Visibility of System Status','Match Between System & Real World','User Control and Freedom','Consistency and Standards'], answer:'Visibility of System Status'},
+  {text:'The Save button is blue on one page and green on another, confusing users. Which heuristic is VIOLATED?', options:['Consistency and Standards','Aesthetic and Minimalist Design','Recognition Rather Than Recall','Help and Documentation'], answer:'Consistency and Standards'},
+  {text:'No way to undo a deletion — data is permanently lost. Which heuristic is VIOLATED?', options:['User Control and Freedom','Error Prevention','Visibility of System Status','Help Users Recognize, Diagnose, and Recover from Errors'], answer:'User Control and Freedom'},
+  {text:'A 200-page PDF manual with no search function or table of contents. Which heuristic is VIOLATED?', options:['Help and Documentation','Aesthetic and Minimalist Design','Flexibility and Efficiency of Use','Recognition Rather Than Recall'], answer:'Help and Documentation'},
+  {text:'Submitting a form only to be told "field X is required" without highlighting the field. Which heuristic is VIOLATED?', options:['Error Prevention','Visibility of System Status','Match Between System & Real World','Consistency and Standards'], answer:'Error Prevention'},
+  {text:'No keyboard shortcuts in a data-entry application used daily by professionals. Which heuristic is VIOLATED?', options:['Flexibility and Efficiency of Use','User Control and Freedom','Consistency and Standards','Help and Documentation'], answer:'Flexibility and Efficiency of Use'},
+];
+
+/* -- User Research Methods: Matching pairs -- */
+const researchPairs = [
+  {method:'Interviews', desc:'One-on-one conversation for deep qualitative insights'},
+  {method:'Surveys', desc:'Structured questionnaires for large-scale quantitative data'},
+  {method:'Focus Groups', desc:'Facilitated group discussion exploring attitudes and perceptions'},
+  {method:'Observational Studies', desc:'Watching users perform tasks in their natural environment'},
+  {method:'Contextual Inquiry', desc:'Interview + observation in the user\'s own environment'},
+];
+
+/* -- WCAG POUR: Matching pairs -- */
+const wcagPairs = [
+  {principle:'Perceivable', meaning:'Users can perceive the content (alt text, captions)'},
+  {principle:'Operable', meaning:'Users can operate the interface (keyboard, voice)'},
+  {principle:'Understandable', meaning:'Users can understand the content and operation'},
+  {principle:'Robust', meaning:'Content works with current and future technologies'},
+];
+
+/* -- Design Stories: Multiple choice -- */
+const storyQuestions = [
+  {text:'What is the correct format for a user story in Agile development?', options:['"As a [user], I want [goal], so that [reason]"','"The system shall [function]"','"User can [action]"','"Given [context], when [action], then [result]"'], answer:'"As a [user], I want [goal], so that [reason]"'},
+  {text:'A user story should answer all of the following EXCEPT:', options:['What technology stack to use','Who the user is','What they want to accomplish','Why they want it'], answer:'What technology stack to use'},
+  {text:'Design stories differ from user stories by focusing on:', options:['Context, emotions, and environment of use','Functional requirements only','Technical specifications','Database design'], answer:'Context, emotions, and environment of use'},
+  {text:'Which of the following is a well-written user story?', options:['"As a CCIS student, I want to view my schedule on my phone, so that I can check room assignments between classes."','"The system shall display the schedule."','"Student wants schedule."','"As a user, I want features."'], answer:'"As a CCIS student, I want to view my schedule on my phone, so that I can check room assignments between classes."'},
+  {text:'The "so that" clause in a user story explains:', options:['The real benefit or motivation for the user','The technical implementation','The database schema','The UI color scheme'], answer:'The real benefit or motivation for the user'},
+  {text:'Design stories help bridge the gap between:', options:['User research and design decisions','Code and database','Frontend and backend','Design and deployment'], answer:'User research and design decisions'},
+  {text:'Which of these should you AVOID when writing design stories?', options:['Using technical jargon from the developer\'s perspective','Being specific about the user type','Describing the context of use','Including the user\'s emotions'], answer:'Using technical jargon from the developer\'s perspective'},
+  {text:'Design stories are used in the design process for all of the following EXCEPT:', options:['Writing production code','Empathy building','Stakeholder communication','Scenario generation for usability testing'], answer:'Writing production code'},
+];
+
+/* -- Usability Testing: Matching pairs -- */
+const testingPairs = [
+  {type:'Formative', purpose:'During design — identify issues and inform redesign'},
+  {type:'Summative', purpose:'After design — measure overall usability (task success, time, satisfaction)'},
+  {type:'A/B Testing', purpose:'Any stage — compare two versions to determine which performs better'},
+];
+
+/* -- Common HCI Mistakes: Multiple choice -- */
+const mistakeQuestions = [
+  {text:'A website shows too many options, features, and information on one screen, overwhelming users. What mistake is this?', options:['Overcomplicating the UI','Lack of Clear Feedback','Ignoring Accessibility','Inconsistent Design'], answer:'Overcomplicating the UI'},
+  {text:'A system does not respond to user actions, leaving users unsure if their action succeeded. What mistake is this?', options:['Lack of Clear Feedback','Overcompleting the UI','Ignoring Accessibility','No User Research'], answer:'Lack of Clear Feedback'},
+  {text:'A website uses low contrast text, small fonts, and no keyboard support, excluding users with disabilities. What mistake is this?', options:['Ignoring Accessibility','Overcomplicating the UI','Inconsistent Design','No User Research'], answer:'Ignoring Accessibility'},
+  {text:'Different pages of the same website use different visual styles, layouts, and behaviors, confusing users. What mistake is this?', options:['Inconsistent Design','Overcomplicating the UI','Lack of Clear Feedback','No User Research'], answer:'Inconsistent Design'},
+  {text:'A team designs a product based entirely on assumptions without talking to any users. What mistake is this?', options:['No User Research','Overcomplicating the UI','Ignoring Accessibility','Inconsistent Design'], answer:'No User Research'},
+  {text:'A system uses vague error messages like "Error 403" with no explanation or recovery steps. Which mistake is this closest to?', options:['Lack of Clear Feedback','Overcomplicating the UI','Ignoring Accessibility','Inconsistent Design'], answer:'Lack of Clear Feedback'},
+  {text:'A mobile app has no mobile-responsive layout, making it nearly impossible to use on a phone. What mistake is this?', options:['Ignoring Accessibility','Overcomplicating the UI','No User Research','Inconsistent Design'], answer:'Ignoring Accessibility'},
+  {text:'A checkout process has no "Back" or "Cancel" button, trapping users in the flow. What mistake is this?', options:['Lack of Clear Feedback','Overcomplicating the UI','Ignoring Accessibility','No User Research'], answer:'Lack of Clear Feedback'},
+];
+
+/* ================= GLOBAL BOMB STATE ================= */
+const ALL_TYPES = ['hci_basics','evolution','hcd_process','heuristics','research','wcag','stories','testing','mistakes'];
+const typeLabels = {
+  hci_basics:'HCI Basics — Core Concepts',
+  evolution:'Evolution of HCI — Timeline',
+  hcd_process:'HCD Process — Order the Stages',
+  heuristics:'Nielsen\'s Heuristics — Identify',
+  research:'User Research — Methods',
+  wcag:'WCAG — POUR Principles',
+  stories:'Design Stories — User Stories',
+  testing:'Usability Testing — Types',
+  mistakes:'Common HCI Mistakes — Spot It',
+};
+
+let timeLeft = 0, mistakes = 0, bombTimer = null;
+let moduleState = {};
+let allModuleIds = [];
+let solvedCount = 0;
+let instanceCounters = {};
+ALL_TYPES.forEach(t=>instanceCounters[t]=0);
+const romanSuffix = ['', ' II', ' III', ' IV', ' V', ' VI'];
+
+function updateTimerDisplay(){
+  const el = document.getElementById('timer');
+  if(!el) return;
+  el.textContent = fmt(timeLeft);
+  el.classList.toggle('low', timeLeft<=30);
+  document.getElementById('frame').classList.toggle('critical', timeLeft<=15);
+}
+function startBomb(){
+  updateTimerDisplay();
+  bombTimer = setInterval(()=>{
+    timeLeft--;
+    if(timeLeft<=0){ timeLeft=0; updateTimerDisplay(); explode(); return; }
+    updateTimerDisplay();
+  },1000);
+}
+function penalize(id){
+  mistakes++;
+  timeLeft = Math.max(0, timeLeft-10);
+  updateTimerDisplay();
+  const el = document.getElementById(id);
+  if(el){ el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'),300); }
+  if(timeLeft<=0) explode();
+}
+function updateSolvedCounts(){
+  document.querySelectorAll('.solvedcount').forEach(el=>{
+    el.textContent = 'SOLVED '+solvedCount+'/'+allModuleIds.length;
+  });
+}
+function markSolved(id){
+  if(moduleState[id].solved) return;
+  moduleState[id].solved = true;
+  document.getElementById(id+'-led').classList.add('on');
+  document.getElementById(id).classList.add('solved');
+  solvedCount++;
+  updateSolvedCounts();
+  if(solvedCount>=allModuleIds.length) defuse();
+}
+function explode(){
+  clearInterval(bombTimer);
+  const card = document.getElementById('overlay-card');
+  card.className = 'overlay-card lose';
+  document.getElementById('overlay-big').textContent = 'BOOM';
+  document.getElementById('overlay-sub').textContent = 'The clock ran out with '+(allModuleIds.length-solvedCount)+' module(s) still live. Mistakes made: '+mistakes+'.';
+  document.getElementById('overlay').classList.add('active');
+}
+function defuse(){
+  clearInterval(bombTimer);
+  const card = document.getElementById('overlay-card');
+  card.className = 'overlay-card win';
+  document.getElementById('overlay-big').textContent = 'DEFUSED';
+  document.getElementById('overlay-sub').textContent = 'All '+allModuleIds.length+' modules cleared with '+fmt(timeLeft)+' left on the clock, and '+mistakes+' mistake(s) made.';
+  document.getElementById('overlay').classList.add('active');
+}
+function renderDots(containerId, count, filled){
+  const c = document.getElementById(containerId);
+  if(!c) return;
+  c.innerHTML='';
+  for(let i=0;i<count;i++){
+    const d = document.createElement('span');
+    d.className = 'dot'+(i<filled?' filled':'');
+    c.appendChild(d);
+  }
+}
+function switchSide(name){
+  document.querySelectorAll('.sideSection').forEach(s=>s.classList.remove('active'));
+  document.getElementById('side-'+name).classList.add('active');
+  document.querySelectorAll('.sidebtn').forEach(b=>b.classList.toggle('active', b.dataset.side===name));
+}
+
+/* ================= MODULE SHELL ================= */
+function moduleShell(id, label){
+  const div = document.createElement('div');
+  div.className='module';
+  div.id=id;
+  div.innerHTML = `<div class="led" id="${id}-led"></div><div class="mtitle">${label}</div><div class="mbody" id="${id}-body"></div>`;
+  return div;
+}
+function createModule(type, gridEl){
+  const num = ++instanceCounters[type];
+  const id = type+'-'+num;
+  const label = typeLabels[type] + (romanSuffix[num-1] || ' '+num);
+  const el = moduleShell(id, label);
+  gridEl.appendChild(el);
+  allModuleIds.push(id);
+  moduleState[id] = {type, solved:false};
+  const initFns = {
+    hci_basics: initHciBasics, evolution: initEvolution, hcd_process: initHcdProcess,
+    heuristics: initHeuristics, research: initResearch, wcag: initWcag,
+    stories: initStories, testing: initTesting, mistakes: initMistakes,
+  };
+  initFns[type](id);
+}
+
+/* ================= HCI BASICS (multiple choice) ================= */
+const MC_NEEDED = 3;
+function nextHciBasics(id){
+  const { idx, q } = pickQuestion(hciBasicsQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
+  moduleState[id].current = q;
+  document.getElementById(id+'-case').textContent = q.text;
+  const box = document.getElementById(id+'-choices');
+  box.innerHTML='';
+  shuffle(q.options).forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='choice2';
+    btn.textContent = opt;
+    btn.onclick = ()=>answerHciBasics(id, opt, btn);
+    box.appendChild(btn);
+  });
+}
+function initHciBasics(id){
+  moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
+  renderDots(id+'-dots', MC_NEEDED, 0);
+  nextHciBasics(id);
+}
+function answerHciBasics(id, opt, btn){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const correct = st.current.answer;
+  document.querySelectorAll('#'+id+'-choices .choice2').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  st.usedIndices.push(st.currentIdx);
+  if(opt===correct){
+    st.streak++;
+    renderDots(id+'-dots', MC_NEEDED, st.streak);
+    if(st.streak>=MC_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', MC_NEEDED, 0);
+    penalize(id);
+  }
+  setTimeout(()=>nextHciBasics(id), 700);
+}
+
+/* ================= EVOLUTION (matching pairs) ================= */
+function initEvolution(id){
+  const left = shuffle(evolutionPairs.map((p,i)=>({label:p.era, pairIdx:i})));
+  const right = shuffle(evolutionPairs.map((p,i)=>({label:p.innovation, pairIdx:i})));
+  moduleState[id].left = left;
+  moduleState[id].right = right;
+  moduleState[id].selectedLeft = null;
+  moduleState[id].solvedPairs = 0;
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="connect-wrap">
+      <div class="connect-col" id="${id}-left"></div>
+      <div class="connect-col" id="${id}-right"></div>
+    </div>`;
+  const leftCol = document.getElementById(id+'-left');
+  left.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className='connect-item';
+    div.textContent = item.label;
+    div.onclick = ()=>selectEvolutionLeft(id, idx);
+    leftCol.appendChild(div);
+  });
+  const rightCol = document.getElementById(id+'-right');
+  right.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className='connect-item';
+    div.textContent = item.label;
+    div.onclick = ()=>selectEvolutionRight(id, idx);
+    rightCol.appendChild(div);
+  });
+}
+function selectEvolutionLeft(id, idx){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const leftEls = document.querySelectorAll('#'+id+'-left .connect-item');
+  if(leftEls[idx].classList.contains('solved')) return;
+  leftEls.forEach(e=>e.classList.remove('selected'));
+  leftEls[idx].classList.add('selected');
+  st.selectedLeft = idx;
+}
+function selectEvolutionRight(id, idx){
+  const st = moduleState[id];
+  if(st.solved || st.selectedLeft===null) return;
+  const rightEls = document.querySelectorAll('#'+id+'-right .connect-item');
+  if(rightEls[idx].classList.contains('solved')) return;
+  const leftEls = document.querySelectorAll('#'+id+'-left .connect-item');
+  const leftPick = st.left[st.selectedLeft];
+  const rightPick = st.right[idx];
+  if(leftPick.pairIdx === rightPick.pairIdx){
+    leftEls[st.selectedLeft].classList.add('solved');
+    leftEls[st.selectedLeft].classList.remove('selected');
+    rightEls[idx].classList.add('solved');
+    st.selectedLeft = null;
+    st.solvedPairs++;
+    if(st.solvedPairs>=evolutionPairs.length) markSolved(id);
+  } else {
+    penalize(id);
+    leftEls.forEach(e=>e.classList.remove('selected'));
+    st.selectedLeft = null;
+  }
+}
+
+/* ================= HCD PROCESS (click in order) ================= */
+function initHcdProcess(id){
+  const order = shuffle(hcdStages.map((s,i)=>({label:s, rank:i})));
+  moduleState[id].order = order;
+  moduleState[id].pointer = 0;
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div id="${id}-list"></div>`;
+  const list = document.getElementById(id+'-list');
+  order.forEach((u, idx)=>{
+    const row = document.createElement('div');
+    row.className='wire-row';
+    row.innerHTML = `<span class="wire-dot w${idx%7}"></span><span>${u.label}</span>`;
+    row.onclick = ()=>clickHcdStage(id, idx);
+    list.appendChild(row);
+  });
+}
+function clickHcdStage(id, idx){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const rows = document.querySelectorAll('#'+id+'-list .wire-row');
+  const row = rows[idx];
+  if(row.classList.contains('cut')) return;
+  if(st.order[idx].rank === st.pointer){
+    row.classList.add('cut');
+    st.pointer++;
+    if(st.pointer>=st.order.length) markSolved(id);
+  } else {
+    penalize(id);
+    rows.forEach(r=>r.classList.remove('cut'));
+    st.pointer = 0;
+  }
+}
+
+/* ================= HEURISTICS (multiple choice) ================= */
+function nextHeuristics(id){
+  const { idx, q } = pickQuestion(heuristicQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
+  moduleState[id].current = q;
+  document.getElementById(id+'-case').textContent = q.text;
+  const box = document.getElementById(id+'-choices');
+  box.innerHTML='';
+  shuffle(q.options).forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='choice2';
+    btn.textContent = opt;
+    btn.onclick = ()=>answerHeuristics(id, opt, btn);
+    box.appendChild(btn);
+  });
+}
+function initHeuristics(id){
+  moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
+  renderDots(id+'-dots', MC_NEEDED, 0);
+  nextHeuristics(id);
+}
+function answerHeuristics(id, opt, btn){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const correct = st.current.answer;
+  document.querySelectorAll('#'+id+'-choices .choice2').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  st.usedIndices.push(st.currentIdx);
+  if(opt===correct){
+    st.streak++;
+    renderDots(id+'-dots', MC_NEEDED, st.streak);
+    if(st.streak>=MC_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', MC_NEEDED, 0);
+    penalize(id);
+  }
+  setTimeout(()=>nextHeuristics(id), 700);
+}
+
+/* ================= RESEARCH METHODS (matching pairs) ================= */
+function initResearch(id){
+  const left = shuffle(researchPairs.map((p,i)=>({label:p.method, pairIdx:i})));
+  const right = shuffle(researchPairs.map((p,i)=>({label:p.desc, pairIdx:i})));
+  moduleState[id].left = left;
+  moduleState[id].right = right;
+  moduleState[id].selectedLeft = null;
+  moduleState[id].solvedPairs = 0;
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="connect-wrap">
+      <div class="connect-col" id="${id}-left"></div>
+      <div class="connect-col" id="${id}-right"></div>
+    </div>`;
+  const leftCol = document.getElementById(id+'-left');
+  left.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className='connect-item';
+    div.textContent = item.label;
+    div.onclick = ()=>selectResearchLeft(id, idx);
+    leftCol.appendChild(div);
+  });
+  const rightCol = document.getElementById(id+'-right');
+  right.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className='connect-item';
+    div.textContent = item.label;
+    div.onclick = ()=>selectResearchRight(id, idx);
+    rightCol.appendChild(div);
+  });
+}
+function selectResearchLeft(id, idx){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const leftEls = document.querySelectorAll('#'+id+'-left .connect-item');
+  if(leftEls[idx].classList.contains('solved')) return;
+  leftEls.forEach(e=>e.classList.remove('selected'));
+  leftEls[idx].classList.add('selected');
+  st.selectedLeft = idx;
+}
+function selectResearchRight(id, idx){
+  const st = moduleState[id];
+  if(st.solved || st.selectedLeft===null) return;
+  const rightEls = document.querySelectorAll('#'+id+'-right .connect-item');
+  if(rightEls[idx].classList.contains('solved')) return;
+  const leftEls = document.querySelectorAll('#'+id+'-left .connect-item');
+  const leftPick = st.left[st.selectedLeft];
+  const rightPick = st.right[idx];
+  if(leftPick.pairIdx === rightPick.pairIdx){
+    leftEls[st.selectedLeft].classList.add('solved');
+    leftEls[st.selectedLeft].classList.remove('selected');
+    rightEls[idx].classList.add('solved');
+    st.selectedLeft = null;
+    st.solvedPairs++;
+    if(st.solvedPairs>=researchPairs.length) markSolved(id);
+  } else {
+    penalize(id);
+    leftEls.forEach(e=>e.classList.remove('selected'));
+    st.selectedLeft = null;
+  }
+}
+
+/* ================= WCAG POUR (matching pairs) ================= */
+function initWcag(id){
+  const left = shuffle(wcagPairs.map((p,i)=>({label:p.principle, pairIdx:i})));
+  const right = shuffle(wcagPairs.map((p,i)=>({label:p.meaning, pairIdx:i})));
+  moduleState[id].left = left;
+  moduleState[id].right = right;
+  moduleState[id].selectedLeft = null;
+  moduleState[id].solvedPairs = 0;
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="connect-wrap">
+      <div class="connect-col" id="${id}-left"></div>
+      <div class="connect-col" id="${id}-right"></div>
+    </div>`;
+  const leftCol = document.getElementById(id+'-left');
+  left.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className='connect-item';
+    div.textContent = item.label;
+    div.onclick = ()=>selectWcagLeft(id, idx);
+    leftCol.appendChild(div);
+  });
+  const rightCol = document.getElementById(id+'-right');
+  right.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className='connect-item';
+    div.textContent = item.label;
+    div.onclick = ()=>selectWcagRight(id, idx);
+    rightCol.appendChild(div);
+  });
+}
+function selectWcagLeft(id, idx){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const leftEls = document.querySelectorAll('#'+id+'-left .connect-item');
+  if(leftEls[idx].classList.contains('solved')) return;
+  leftEls.forEach(e=>e.classList.remove('selected'));
+  leftEls[idx].classList.add('selected');
+  st.selectedLeft = idx;
+}
+function selectWcagRight(id, idx){
+  const st = moduleState[id];
+  if(st.solved || st.selectedLeft===null) return;
+  const rightEls = document.querySelectorAll('#'+id+'-right .connect-item');
+  if(rightEls[idx].classList.contains('solved')) return;
+  const leftEls = document.querySelectorAll('#'+id+'-left .connect-item');
+  const leftPick = st.left[st.selectedLeft];
+  const rightPick = st.right[idx];
+  if(leftPick.pairIdx === rightPick.pairIdx){
+    leftEls[st.selectedLeft].classList.add('solved');
+    leftEls[st.selectedLeft].classList.remove('selected');
+    rightEls[idx].classList.add('solved');
+    st.selectedLeft = null;
+    st.solvedPairs++;
+    if(st.solvedPairs>=wcagPairs.length) markSolved(id);
+  } else {
+    penalize(id);
+    leftEls.forEach(e=>e.classList.remove('selected'));
+    st.selectedLeft = null;
+  }
+}
+
+/* ================= DESIGN STORIES (multiple choice) ================= */
+function nextStories(id){
+  const { idx, q } = pickQuestion(storyQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
+  moduleState[id].current = q;
+  document.getElementById(id+'-case').textContent = q.text;
+  const box = document.getElementById(id+'-choices');
+  box.innerHTML='';
+  shuffle(q.options).forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='choice2';
+    btn.textContent = opt;
+    btn.onclick = ()=>answerStories(id, opt, btn);
+    box.appendChild(btn);
+  });
+}
+function initStories(id){
+  moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
+  renderDots(id+'-dots', MC_NEEDED, 0);
+  nextStories(id);
+}
+function answerStories(id, opt, btn){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const correct = st.current.answer;
+  document.querySelectorAll('#'+id+'-choices .choice2').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  st.usedIndices.push(st.currentIdx);
+  if(opt===correct){
+    st.streak++;
+    renderDots(id+'-dots', MC_NEEDED, st.streak);
+    if(st.streak>=MC_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', MC_NEEDED, 0);
+    penalize(id);
+  }
+  setTimeout(()=>nextStories(id), 700);
+}
+
+/* ================= USABILITY TESTING (matching pairs) ================= */
+function initTesting(id){
+  const left = shuffle(testingPairs.map((p,i)=>({label:p.type, pairIdx:i})));
+  const right = shuffle(testingPairs.map((p,i)=>({label:p.purpose, pairIdx:i})));
+  moduleState[id].left = left;
+  moduleState[id].right = right;
+  moduleState[id].selectedLeft = null;
+  moduleState[id].solvedPairs = 0;
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="connect-wrap">
+      <div class="connect-col" id="${id}-left"></div>
+      <div class="connect-col" id="${id}-right"></div>
+    </div>`;
+  const leftCol = document.getElementById(id+'-left');
+  left.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className='connect-item';
+    div.textContent = item.label;
+    div.onclick = ()=>selectTestingLeft(id, idx);
+    leftCol.appendChild(div);
+  });
+  const rightCol = document.getElementById(id+'-right');
+  right.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className='connect-item';
+    div.textContent = item.label;
+    div.onclick = ()=>selectTestingRight(id, idx);
+    rightCol.appendChild(div);
+  });
+}
+function selectTestingLeft(id, idx){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const leftEls = document.querySelectorAll('#'+id+'-left .connect-item');
+  if(leftEls[idx].classList.contains('solved')) return;
+  leftEls.forEach(e=>e.classList.remove('selected'));
+  leftEls[idx].classList.add('selected');
+  st.selectedLeft = idx;
+}
+function selectTestingRight(id, idx){
+  const st = moduleState[id];
+  if(st.solved || st.selectedLeft===null) return;
+  const rightEls = document.querySelectorAll('#'+id+'-right .connect-item');
+  if(rightEls[idx].classList.contains('solved')) return;
+  const leftEls = document.querySelectorAll('#'+id+'-left .connect-item');
+  const leftPick = st.left[st.selectedLeft];
+  const rightPick = st.right[idx];
+  if(leftPick.pairIdx === rightPick.pairIdx){
+    leftEls[st.selectedLeft].classList.add('solved');
+    leftEls[st.selectedLeft].classList.remove('selected');
+    rightEls[idx].classList.add('solved');
+    st.selectedLeft = null;
+    st.solvedPairs++;
+    if(st.solvedPairs>=testingPairs.length) markSolved(id);
+  } else {
+    penalize(id);
+    leftEls.forEach(e=>e.classList.remove('selected'));
+    st.selectedLeft = null;
+  }
+}
+
+/* ================= COMMON MISTAKES (multiple choice) ================= */
+function nextMistakes(id){
+  const { idx, q } = pickQuestion(mistakeQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
+  moduleState[id].current = q;
+  document.getElementById(id+'-case').textContent = q.text;
+  const box = document.getElementById(id+'-choices');
+  box.innerHTML='';
+  shuffle(q.options).forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='choice2';
+    btn.textContent = opt;
+    btn.onclick = ()=>answerMistakes(id, opt, btn);
+    box.appendChild(btn);
+  });
+}
+function initMistakes(id){
+  moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
+  renderDots(id+'-dots', MC_NEEDED, 0);
+  nextMistakes(id);
+}
+function answerMistakes(id, opt, btn){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const correct = st.current.answer;
+  document.querySelectorAll('#'+id+'-choices .choice2').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  st.usedIndices.push(st.currentIdx);
+  if(opt===correct){
+    st.streak++;
+    renderDots(id+'-dots', MC_NEEDED, st.streak);
+    if(st.streak>=MC_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', MC_NEEDED, 0);
+    penalize(id);
+  }
+  setTimeout(()=>nextMistakes(id), 700);
+}
+
+/* ================= GAME START ================= */
+const DIFFICULTY_CONFIG = {
+  easy:   {sides:['front','back'], perSide:4, time:120},
+  medium: {sides:['front','back'], perSide:6, time:120},
+  hard:   {sides:['front','back','left','right','bottom'], perSide:8, time:420},
+};
+
+function buildSideSection(sideName, isFirst){
+  const section = document.createElement('div');
+  section.className = 'sideSection'+(isFirst?' active':'');
+  section.id = 'side-'+sideName;
+  let html = '';
+  if(sideName==='front'){
+    html += `<div class="timer-wrap">
+      <div class="timer" id="timer">00:00</div>
+      <div class="strikes">MISTAKES COST <b>-10s</b> EACH</div>
+    </div>`;
+  } else {
+    html += `<div class="backnote">${sideName.toUpperCase()} — no clock here. Return to the FRONT to check the time.</div>`;
+  }
+  html += `<div class="solvedcount">SOLVED 0/0</div>`;
+  html += `<div class="module-grid" id="grid-${sideName}"></div>`;
+  section.innerHTML = html;
+  return section;
+}
+
+function startGame(difficulty){
+  document.getElementById('setup').style.display='none';
+  document.getElementById('game').style.display='block';
+
+  const cfg = DIFFICULTY_CONFIG[difficulty];
+  timeLeft = cfg.time;
+
+  const sidesContainer = document.getElementById('sidesContainer');
+  sidesContainer.innerHTML = '';
+  const nav = document.getElementById('sideNav');
+  nav.innerHTML = '';
+
+  cfg.sides.forEach((sideName, i)=>{
+    const section = buildSideSection(sideName, i===0);
+    sidesContainer.appendChild(section);
+
+    const navBtn = document.createElement('button');
+    navBtn.className = 'sidebtn'+(i===0?' active':'');
+    navBtn.dataset.side = sideName;
+    navBtn.textContent = sideName.toUpperCase();
+    navBtn.onclick = ()=>switchSide(sideName);
+    nav.appendChild(navBtn);
+
+    const gridEl = document.getElementById('grid-'+sideName);
+    gridEl.style.setProperty('--cols', cfg.perSide/2);
+    const sideTypes = shuffle(ALL_TYPES).slice(0, cfg.perSide);
+    sideTypes.forEach(t=>createModule(t, gridEl));
+  });
+
+  updateSolvedCounts();
+  startBomb();
+}
+</script>
+</body>
+</html>

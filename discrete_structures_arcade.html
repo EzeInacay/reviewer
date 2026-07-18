@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discrete Structures — Defusal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#151a22; --panel-edge:#2a323f; --steel:#8a929f;
+    --red:#e2352f; --red-dim:#7a1e1b; --phosphor:#6df7c1; --gold:#f2c14e;
+    --text:#eef1f5; --text-dim:#9aa2b1; --mono:'Space Mono', monospace; --sans:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:#050608; color:var(--text); font-family:var(--sans); min-height:100vh; padding:14px; }
+  .frame{ max-width:1020px;margin:0 auto; border:6px solid var(--red); border-radius:10px; background:#0a0c10; padding:16px; box-shadow:0 0 40px rgba(226,53,47,0.15); }
+  .frame.critical{ animation:critical-pulse .6s infinite; }
+  @keyframes critical-pulse{ 0%,100%{box-shadow:0 0 20px rgba(226,53,47,0.2);} 50%{box-shadow:0 0 55px rgba(226,53,47,0.55);} }
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;}
+  .logo{font-family:var(--mono); font-weight:700; line-height:1.1;}
+  .logo .l1{font-size:20px; letter-spacing:.12em; color:var(--red);}
+  .logo .l2{font-size:11px; letter-spacing:.14em; color:var(--text-dim);}
+  a.homelink{font-family:var(--mono); font-size:11px; color:var(--text-dim); text-decoration:none; border:1px solid var(--panel-edge); border-radius:6px; padding:6px 10px;}
+  a.homelink:hover{border-color:var(--red); color:var(--red);}
+
+  .setup-title{font-family:var(--mono); font-size:13px; letter-spacing:.1em; color:var(--text-dim); text-align:center; margin:20px 0 14px;}
+  .diffbtn{ display:block; width:100%; max-width:460px; margin:0 auto 12px; font-family:var(--mono); font-size:13px; text-align:left; background:var(--panel); border:1px solid var(--panel-edge); color:var(--text); border-radius:8px; padding:14px 16px; cursor:pointer; }
+  .diffbtn b{display:block; font-size:15px; color:var(--phosphor); margin-bottom:3px;}
+  .diffbtn:hover{border-color:var(--phosphor);}
+
+  .timer-wrap{text-align:center; margin:6px auto 14px;}
+  .timer{ display:inline-block; font-family:var(--mono); font-size:42px; font-weight:700; background:#03110a; color:var(--phosphor); border:2px solid #0e3a28; border-radius:8px; padding:6px 22px; letter-spacing:.06em; text-shadow:0 0 10px rgba(109,247,193,.6); }
+  .timer.low{color:var(--red); text-shadow:0 0 14px rgba(226,53,47,.8); border-color:var(--red-dim);}
+  .strikes{font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-top:6px;}
+  .strikes b{color:var(--red);}
+  .solvedcount{font-family:var(--mono); font-size:11px; color:var(--phosphor); margin:6px 0 10px; text-align:center;}
+
+  .sidenav{display:flex; justify-content:center; gap:6px; flex-wrap:wrap; margin-bottom:12px;}
+  .sidebtn{ font-family:var(--mono); font-size:11px; background:var(--panel); border:1px solid var(--panel-edge); color:var(--steel); border-radius:6px; padding:7px 12px; cursor:pointer; }
+  .sidebtn:hover{border-color:var(--gold); color:var(--gold);}
+  .sidebtn.active{border-color:var(--phosphor); color:var(--phosphor);}
+  .backnote{text-align:center; font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-bottom:10px;}
+
+  .sideSection{display:none;}
+  .sideSection.active{display:block;}
+
+  .module-grid{ display:grid; grid-template-columns:repeat(var(--cols,3),1fr); gap:14px; }
+  @media (max-width:820px){ .module-grid{grid-template-columns:1fr 1fr;} }
+  @media (max-width:560px){ .module-grid{grid-template-columns:1fr;} }
+
+  .module{ position:relative; background:var(--panel); border:2px solid var(--panel-edge); border-radius:10px; padding:16px 14px 14px; min-height:190px; }
+  .module.solved{border-color:#1f6b4c;}
+  .led{ position:absolute; top:10px; left:10px; width:12px; height:12px; border-radius:50%; background:#4a0d0b; border:1px solid #300; box-shadow:inset 0 0 3px #000; }
+  .led.on{ background:var(--phosphor); border-color:var(--phosphor); box-shadow:0 0 10px var(--phosphor); }
+  .mtitle{ font-family:var(--mono); font-size:11.5px; letter-spacing:.06em; color:var(--steel); text-transform:uppercase; text-align:center; margin-bottom:10px; }
+  .mbody{font-size:13px;}
+  .progress-dots{display:flex; justify-content:center; gap:6px; margin-top:10px;}
+  .dot{width:8px;height:8px;border-radius:50%; background:#333c48; border:1px solid #444e5e;}
+  .dot.filled{background:var(--phosphor); border-color:var(--phosphor);}
+
+  .shake{animation:shakeit .3s;}
+  @keyframes shakeit{25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
+
+  .wire-row{ display:flex; align-items:center; gap:8px; background:#0e1420; border:1px solid var(--panel-edge); border-radius:6px; padding:8px 10px; margin-bottom:6px; cursor:pointer; font-size:11.5px; }
+  .wire-row:hover{border-color:var(--steel);}
+  .wire-row.cut{opacity:.45; border-color:#1f6b4c; cursor:default; text-decoration:line-through; color:var(--phosphor);}
+  .wire-dot{width:14px;height:6px;border-radius:3px; flex-shrink:0;}
+  .w0{background:#c0392b;} .w1{background:#e2965f;} .w2{background:#f2c14e;} .w3{background:#6df7c1;} .w4{background:#5fa8e2;} .w5{background:#b57bd6;} .w6{background:#5fe2c0;}
+
+  .sort-name{font-family:var(--mono); font-size:15px; text-align:center; margin-bottom:12px; color:var(--text);}
+  .bins2{display:grid; grid-template-columns:1fr 1fr; gap:6px;}
+  .bins2.two{grid-template-columns:1fr 1fr;}
+  .bin2{font-size:11px; font-weight:600; background:#0e1420; border:1px solid var(--panel-edge); border-radius:6px; padding:9px 4px; text-align:center; cursor:pointer;}
+  .bin2:hover{border-color:var(--phosphor); color:var(--phosphor);}
+
+  .case2{font-size:11.5px; line-height:1.5; margin-bottom:10px; color:var(--text);}
+  .choice2{display:block; width:100%; text-align:left; font-size:11px; background:#0e1420; border:1px solid var(--panel-edge); color:var(--text); border-radius:6px; padding:8px 10px; margin-bottom:6px; cursor:pointer;}
+  .choice2:hover{border-color:var(--steel);}
+  .choice2.correct{border-color:var(--phosphor); color:var(--phosphor);}
+  .choice2.wrong{border-color:var(--red); color:var(--red);}
+
+  .connect-wrap{display:flex; gap:10px;}
+  .connect-col{flex:1; display:flex; flex-direction:column; gap:6px;}
+  .connect-item{ font-size:11px; background:#0e1420; border:1px solid var(--panel-edge); color:var(--text); border-radius:6px; padding:8px 6px; text-align:center; cursor:pointer; }
+  .connect-item:hover{border-color:var(--steel);}
+  .connect-item.selected{border-color:var(--gold); color:var(--gold);}
+  .connect-item.solved{border-color:#1f6b4c; color:var(--phosphor); opacity:.6; cursor:default;}
+
+  button.action{font-family:var(--sans); font-weight:600; font-size:13px; background:var(--steel); color:#111; border:none; border-radius:6px; padding:8px 12px; cursor:pointer; width:100%;}
+  button.action:hover{background:#a9b2bf;}
+
+  .overlay{ position:fixed; inset:0; background:rgba(3,4,6,0.92); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .overlay.active{display:flex;}
+  .overlay-card{ text-align:center; max-width:360px; width:100%; background:var(--panel); border:2px solid var(--panel-edge); border-radius:12px; padding:28px 20px; }
+  .overlay-card.win{border-color:var(--phosphor);}
+  .overlay-card.lose{border-color:var(--red);}
+  .overlay-big{font-family:var(--mono); font-size:26px; margin-bottom:8px;}
+  .overlay-card.win .overlay-big{color:var(--phosphor);}
+  .overlay-card.lose .overlay-big{color:var(--red);}
+  .overlay-sub{color:var(--text-dim); font-size:13px; margin-bottom:18px;}
+</style>
+</head>
+<body>
+<div class="frame" id="frame">
+  <div class="topbar">
+    <a class="homelink" href="index.html">&larr; HOME</a>
+    <div class="logo" style="text-align:right;">
+      <div class="l1">DEFUSAL</div>
+      <div class="l2">DISCRETE STRUCTURES</div>
+    </div>
+  </div>
+
+  <div id="setup">
+    <div class="setup-title">SELECT DIFFICULTY</div>
+    <button class="diffbtn" onclick="startGame('easy')"><b>EASY</b>4 modules per side · front &amp; back · 2:00 on the clock</button>
+    <button class="diffbtn" onclick="startGame('medium')"><b>MEDIUM</b>6 modules per side (3×2) · front &amp; back · 2:00 on the clock</button>
+    <button class="diffbtn" onclick="startGame('hard')"><b>HARD</b>8 modules per side · front, back, left, right &amp; bottom · 7:00 on the clock — only the front shows the clock</button>
+  </div>
+
+  <div id="game" style="display:none;">
+    <div class="sidenav" id="sideNav"></div>
+    <div id="sidesContainer"></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-card" id="overlay-card">
+    <div class="overlay-big" id="overlay-big">—</div>
+    <div class="overlay-sub" id="overlay-sub">—</div>
+    <button class="action" onclick="location.reload()">TRY AGAIN</button>
+  </div>
+</div>
+
+<script>
+function shuffle(arr){ return [...arr].sort(()=>Math.random()-0.5); }
+function fmt(t){ const m=Math.floor(t/60).toString().padStart(2,'0'); const s=Math.floor(t%60).toString().padStart(2,'0'); return m+':'+s; }
+function pickQuestion(pool, usedIndices){
+  const available = pool.filter((_, i) => !usedIndices.includes(i));
+  if (available.length === 0) { usedIndices.length = 0; }
+  const src = available.length ? available : pool;
+  const idx = pool.indexOf(src[Math.floor(Math.random()*src.length)]);
+  return { idx, q: pool[idx] };
+}
+
+/* ================= CONTENT POOLS (based on Discrete Structures reviewer) ================= */
+
+/* -- Counting Basics: FCP, Addition Principle -- */
+const countingQuestions = [
+  {text:'What does FCP stand for in combinatorics?', options:['Fundamental Counting Principle','Factorial Calculation Process','First Combination Principle','Finite Cardinality Property'], answer:'Fundamental Counting Principle'},
+  {text:'The FCP states: If event A can happen in m ways and event B in n ways, the number of ways both happen together is:', options:['m × n','m + n','m − n','n / m'], answer:'m × n'},
+  {text:'A restaurant offers 3 appetizers, 5 main courses, and 2 desserts. How many different three-course meals are possible?', options:['30','25','10','15'], answer:'30'},
+  {text:'How many 4-digit PIN codes can be formed using digits 0–9 if repetition is allowed?', options:['10,000','5,040','1,000','10,000,000'], answer:'10,000'},
+  {text:'How many 4-digit PIN codes can be formed if repetition is NOT allowed?', options:['5,040','10,000','6,561','3,024'], answer:'5,040'},
+  {text:'The Addition Principle is used when events are:', options:['Mutually exclusive','Independent','Dependent','Overlapping'], answer:'Mutually exclusive'},
+  {text:'A class has 15 IT majors and 10 CS majors. How many ways to choose one representative who is either IT or CS?', options:['25','150','15','10'], answer:'25'},
+  {text:'Which keyword tells you to use the FCP (multiply)?', options:['"and"','"or"','"not"','"either"'], answer:'"and"'},
+  {text:'Which keyword tells you to use the Addition Principle (add) for mutually exclusive events?', options:['"or"','"and"','"then"','"both"'], answer:'"or"'},
+  {text:'How many possible outfits from 5 shirts, 3 pants, and 2 shoes?', options:['30','10','25','15'], answer:'30'},
+  {text:'A pizza shop offers 4 crust types, 3 sauce types, and 12 toppings. How many one-topping pizzas are possible?', options:['144','48','19','72'], answer:'144'},
+  {text:'If event A has 6 outcomes and event B has 7 outcomes, and they are mutually exclusive, how many outcomes for A or B?', options:['13','42','6','7'], answer:'13'},
+  {text:'The FCP is also known as the:', options:['Multiplication Principle','Addition Principle','Complement Rule','Inclusion-Exclusion Principle'], answer:'Multiplication Principle'},
+  {text:'In a 10-question true/false exam, how many answer keys are possible?', options:['1,024','20','512','10'], answer:'1,024'},
+];
+
+/* -- Factorials -- */
+const factorialQuestions = [
+  {text:'What is the value of 0! ?', options:['1','0','Undefined','−1'], answer:'1'},
+  {text:'What is the value of 3! ?', options:['6','3','9','12'], answer:'6'},
+  {text:'What is the value of 4! ?', options:['24','16','12','8'], answer:'24'},
+  {text:'What is the value of 5! ?', options:['120','60','25','720'], answer:'120'},
+  {text:'What is the value of 6! ?', options:['720','120','360','600'], answer:'720'},
+  {text:'What is the value of 7! ?', options:['5,040','720','840','7,000'], answer:'5,040'},
+  {text:'What is the value of 8! ?', options:['40,320','5,040','20,160','80,640'], answer:'40,320'},
+  {text:'What is the value of 10! ?', options:['3,628,800','362,880','10,000,000','1,000,000'], answer:'3,628,800'},
+  {text:'n! is defined as:', options:['n × (n−1) × (n−2) × ... × 2 × 1','n + (n−1) + (n−2) + ... + 1','n^n','2^n'], answer:'n × (n−1) × (n−2) × ... × 2 × 1'},
+  {text:'Which factorial value is 120?', options:['5!','4!','6!','3!'], answer:'5!'},
+  {text:'Which factorial value is 24?', options:['4!','3!','5!','6!'], answer:'4!'},
+  {text:'What is 6! / 5! equal to?', options:['6','5','30','1'], answer:'6'},
+  {text:'What is 10! / 8! equal to?', options:['90','20','10','45'], answer:'90'},
+  {text:'What is 1! ?', options:['1','0','−1','Undefined'], answer:'1'},
+];
+
+/* -- Permutation or Combination? (two-bin sort) -- */
+const permCombItems = [
+  {text:'Awarding gold, silver, and bronze medals to 3 of 8 runners.', answer:'Permutation'},
+  {text:'Choosing 3 committee members from 20 students.', answer:'Combination'},
+  {text:'Arranging 5 books on a shelf.', answer:'Permutation'},
+  {text:'Selecting 3 pizza toppings from 12 options.', answer:'Combination'},
+  {text:'Creating a 4-digit password from digits 0–9 (no repeats).', answer:'Permutation'},
+  {text:'Forming a team of 5 players from 15 candidates.', answer:'Combination'},
+  {text:'Assigning 1st, 2nd, and 3rd place in a race.', answer:'Permutation'},
+  {text:'Choosing 2 class representatives from 30 students.', answer:'Combination'},
+  {text:'Arranging the letters A, B, C, D in different orders.', answer:'Permutation'},
+  {text:'Selecting 4 fruits to put in a salad from 10 types.', answer:'Combination'},
+  {text:'Creating different 3-digit lock combinations (order matters).', answer:'Permutation'},
+  {text:'Picking 6 numbers for a lottery ticket (order does not matter).', answer:'Combination'},
+  {text:'Seating 7 people in a row of 7 chairs.', answer:'Permutation'},
+  {text:'Choosing 3 winners for the same prize from 50 entries.', answer:'Combination'},
+];
+
+/* -- Counting Calculations -- */
+const calcQuestions = [
+  {text:'How many ways can 7 people be seated in 7 chairs?', options:['5,040','720','120','5,000'], answer:'5,040'},
+  {text:'P(8, 3) = ?', options:['336','56','40,320','24'], answer:'336'},
+  {text:'P(5, 5) = ?', options:['120','25','5','720'], answer:'120'},
+  {text:'C(20, 3) = ?', options:['1,140','6,840','60','120'], answer:'1,140'},
+  {text:'C(10, 2) = ?', options:['45','90','20','10'], answer:'45'},
+  {text:'How many ways to select a president, VP, and secretary from 12 candidates?', options:['1,320','220','12','1,440'], answer:'1,320'},
+  {text:'How many 5-letter words (real or not) from 26 letters, repetition allowed?', options:['26^5 = 11,881,376','26×5 = 130','C(26,5)','P(26,5)'], answer:'26^5 = 11,881,376'},
+  {text:'P(n, r) formula is:', options:['n! / (n−r)!','n! / r!','n! / (r! (n−r)!)','n × r'], answer:'n! / (n−r)!'},
+  {text:'C(n, r) formula is:', options:['n! / (r! (n−r)!)','n! / (n−r)!','(n−r)! / r!','n × r'], answer:'n! / (r! (n−r)!)'},
+  {text:'P(10, 2) = ?', options:['90','45','100','20'], answer:'90'},
+  {text:'C(8, 3) = ?', options:['56','336','24','40'], answer:'56'},
+  {text:'How many different ways to arrange 6 different books on a shelf?', options:['720','120','36','6'], answer:'720'},
+  {text:'How many ways to choose a team of 4 from 9 players?', options:['126','3,024','36','9'], answer:'126'},
+  {text:'The shortcut for P(n, r) is to multiply:', options:['n × (n−1) × ... × (n−r+1)','n × r','n!','n^r'], answer:'n × (n−1) × ... × (n−r+1)'},
+];
+
+/* -- Cardinality and Set Types -- */
+const cardinalityQuestions = [
+  {text:'What is |{a, b, c}| ?', options:['3','2','1','4'], answer:'3'},
+  {text:'What is |∅| ?', options:['0','1','Undefined','−1'], answer:'0'},
+  {text:'What is |{0}| ?', options:['1','0','10','2'], answer:'1'},
+  {text:'The set {1, 2, 2, 3} actually has cardinality:', options:['3','4','2','5'], answer:'3'},
+  {text:'If |A| = 3, how many elements are in the power set P(A)?', options:['8','6','3','9'], answer:'8'},
+  {text:'If |A| = 5, what is |P(A)| ?', options:['32','25','10','5'], answer:'32'},
+  {text:'A set with exactly one element is called a:', options:['Singleton set','Empty set','Power set','Finite set'], answer:'Singleton set'},
+  {text:'The set of distinct letters in "MISSISSIPPI" has cardinality:', options:['4','11','8','3'], answer:'4'},
+  {text:'Two sets with the same cardinality are called:', options:['Equivalent sets','Equal sets','Subsets','Power sets'], answer:'Equivalent sets'},
+  {text:'Two sets with exactly the same elements are called:', options:['Equal sets','Equivalent sets','Subsets','Supersets'], answer:'Equal sets'},
+  {text:'|P(A)| = 2^|A|. If |A| = 4, then |P(A)| = ?', options:['16','8','4','32'], answer:'16'},
+  {text:'A set that contains no elements is the:', options:['Empty (null) set','Singleton set','Power set','Universal set'], answer:'Empty (null) set'},
+  {text:'If A ⊆ B and A ≠ B, then A is a:', options:['Proper subset','Subset','Superset','Power set'], answer:'Proper subset'},
+  {text:'If B contains all elements of A, then B is a:', options:['Superset','Subset','Proper subset','Power set'], answer:'Superset'},
+];
+
+/* -- Set Operations -- */
+const setOpQuestions = [
+  {text:'A = {1,2,3}, B = {3,4,5}. What is A ∪ B?', options:['{1,2,3,4,5}','{3}','{1,2}','{4,5}'], answer:'{1,2,3,4,5}'},
+  {text:'A = {1,2,3}, B = {3,4,5}. What is A ∩ B?', options:['{3}','{1,2,3,4,5}','{1,2}','{4,5}'], answer:'{3}'},
+  {text:'A = {1,2,3}, B = {3,4,5}. What is A − B?', options:['{1,2}','{3}','{4,5}','{1,2,3,4,5}'], answer:'{1,2}'},
+  {text:'A = {1,2,3}, B = {3,4,5}. What is B − A?', options:['{4,5}','{1,2}','{3}','{1,2,3,4,5}'], answer:'{4,5}'},
+  {text:'A = {1,2,3}, B = {3,4,5}. What is A ⊕ B (symmetric difference)?', options:['{1,2,4,5}','{3}','{1,2,3,4,5}','{1,2}'], answer:'{1,2,4,5}'},
+  {text:'U = {1,2,3,4,5,6}, A = {1,2,3}. What is A\' (complement)?', options:['{4,5,6}','{1,2,3}','{3,4,5,6}','{1,2,3,4,5,6}'], answer:'{4,5,6}'},
+  {text:'If A and B have no elements in common, they are:', options:['Disjoint sets','Equal sets','Equivalent sets','Subsets'], answer:'Disjoint sets'},
+  {text:'A ∩ ∅ equals:', options:['∅','A','U','{0}'], answer:'∅'},
+  {text:'A ∪ ∅ equals:', options:['A','∅','U','{0}'], answer:'A'},
+  {text:'A ∪ U (universal set) equals:', options:['U','A','∅','A\''], answer:'U'},
+  {text:'A ∩ A\' (complement) equals:', options:['∅','A','U','A\''], answer:'∅'},
+  {text:'The symmetric difference A ⊕ B corresponds to which logical operation?', options:['XOR','AND','OR','NOT'], answer:'XOR'},
+  {text:'The union A ∪ B corresponds to which logical operation?', options:['OR','AND','XOR','NOT'], answer:'OR'},
+  {text:'The intersection A ∩ B corresponds to which logical operation?', options:['AND','OR','XOR','NOT'], answer:'AND'},
+];
+
+/* -- Set Identities: match law name to formula (8 pairs) -- */
+const setLawPairs = [
+  {law:'Identity Laws', formula:'A ∪ ∅ = A, A ∩ U = A'},
+  {law:'Domination Laws', formula:'A ∪ U = U, A ∩ ∅ = ∅'},
+  {law:'Idempotent Laws', formula:'A ∪ A = A, A ∩ A = A'},
+  {law:'Complement Laws', formula:'A ∪ A\' = U, A ∩ A\' = ∅'},
+  {law:'Commutative Laws', formula:'A ∪ B = B ∪ A, A ∩ B = B ∩ A'},
+  {law:'Associative Laws', formula:'(A ∪ B) ∪ C = A ∪ (B ∪ C)'},
+  {law:'Distributive Laws', formula:'A ∪ (B ∩ C) = (A ∪ B) ∩ (A ∪ C)'},
+  {law:'De Morgan\'s Laws', formula:'(A ∪ B)\' = A\' ∩ B\''},
+  {law:'Absorption Laws', formula:'A ∪ (A ∩ B) = A'},
+  {law:'Double Complement', formula:'(A\')\' = A'},
+];
+
+/* -- De Morgan's Laws: match expression to equivalent -- */
+const demorganPairs = [
+  {expr:'(A ∪ B)\'', equiv:'A\' ∩ B\''},
+  {expr:'(A ∩ B)\'', equiv:'A\' ∪ B\''},
+  {expr:'NOT (A OR B)', equiv:'NOT A AND NOT B'},
+  {expr:'NOT (A AND B)', equiv:'NOT A OR NOT B'},
+  {expr:'Complement of union', equiv:'Intersection of complements'},
+  {expr:'Complement of intersection', equiv:'Union of complements'},
+];
+
+/* -- Venn Diagram Word Problems -- */
+const vennQuestions = [
+  {text:'100 CCIS students surveyed: 55 in Networking, 50 in Programming, 25 in both. How many are in at least one?', options:['80','105','75','55'], answer:'80'},
+  {text:'100 CCIS students: 55 in Networking, 50 in Programming, 25 in both. How many are in neither?', options:['20','15','25','30'], answer:'20'},
+  {text:'100 CCIS students: 55 in Networking, 50 in Programming, 25 in both. How many are in Networking only?', options:['30','55','25','20'], answer:'30'},
+  {text:'100 CCIS students: 55 in Networking, 50 in Programming, 25 in both. How many are in Programming only?', options:['25','50','20','30'], answer:'25'},
+  {text:'The formula |A ∪ B| = |A| + |B| − |A∩B| is called:', options:['Inclusion-Exclusion Principle','Addition Principle','FCP','Complement Rule'], answer:'Inclusion-Exclusion Principle'},
+  {text:'In a Venn diagram, you should always start filling in which region?', options:['The intersection','The union','The complement','The universal set'], answer:'The intersection'},
+  {text:'In a class of 50, 30 take Java, 25 take Python, 15 take both. How many take at least one?', options:['40','55','20','35'], answer:'40'},
+  {text:'How many 4-digit PINs have at least one zero? (Hint: use complement rule)', options:['3,439','10,000','6,561','5,040'], answer:'3,439'},
+  {text:'The complement rule for "at least one" is:', options:['Total − None','Total + None','None − Total','Total × None'], answer:'Total − None'},
+  {text:'A survey of 80 people: 45 like coffee, 30 like tea, 20 like both. How many like coffee only?', options:['25','45','20','15'], answer:'25'},
+];
+
+/* ================= GLOBAL BOMB STATE ================= */
+const ALL_TYPES = ['counting_basics','factorials','perm_comb','calc_counting','cardinality','set_ops','set_laws','demorgan','venn'];
+const typeLabels = {
+  counting_basics:'Counting — FCP & Addition',
+  factorials:'Factorials — n! Values',
+  perm_comb:'Permutation or Combination?',
+  calc_counting:'Counting — Solve It',
+  cardinality:'Sets — Cardinality & Types',
+  set_ops:'Set Operations — Identify',
+  set_laws:'Set Identities — Match the Law',
+  demorgan:'De Morgan\'s Laws — Match',
+  venn:'Venn Diagrams — Word Problems',
+};
+
+let timeLeft = 0, mistakes = 0, bombTimer = null;
+let moduleState = {};
+let allModuleIds = [];
+let solvedCount = 0;
+let instanceCounters = {};
+ALL_TYPES.forEach(t=>instanceCounters[t]=0);
+const romanSuffix = ['', ' II', ' III', ' IV', ' V', ' VI'];
+
+function updateTimerDisplay(){
+  const el = document.getElementById('timer');
+  if(!el) return;
+  el.textContent = fmt(timeLeft);
+  el.classList.toggle('low', timeLeft<=30);
+  document.getElementById('frame').classList.toggle('critical', timeLeft<=15);
+}
+function startBomb(){
+  updateTimerDisplay();
+  bombTimer = setInterval(()=>{
+    timeLeft--;
+    if(timeLeft<=0){ timeLeft=0; updateTimerDisplay(); explode(); return; }
+    updateTimerDisplay();
+  },1000);
+}
+function penalize(id){
+  mistakes++;
+  timeLeft = Math.max(0, timeLeft-10);
+  updateTimerDisplay();
+  const el = document.getElementById(id);
+  if(el){ el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'),300); }
+  if(timeLeft<=0) explode();
+}
+function updateSolvedCounts(){
+  document.querySelectorAll('.solvedcount').forEach(el=>{
+    el.textContent = 'SOLVED '+solvedCount+'/'+allModuleIds.length;
+  });
+}
+function markSolved(id){
+  if(moduleState[id].solved) return;
+  moduleState[id].solved = true;
+  document.getElementById(id+'-led').classList.add('on');
+  document.getElementById(id).classList.add('solved');
+  solvedCount++;
+  updateSolvedCounts();
+  if(solvedCount>=allModuleIds.length) defuse();
+}
+function explode(){
+  clearInterval(bombTimer);
+  const card = document.getElementById('overlay-card');
+  card.className = 'overlay-card lose';
+  document.getElementById('overlay-big').textContent = 'BOOM';
+  document.getElementById('overlay-sub').textContent = 'The clock ran out with '+(allModuleIds.length-solvedCount)+' module(s) still live. Mistakes made: '+mistakes+'.';
+  document.getElementById('overlay').classList.add('active');
+}
+function defuse(){
+  clearInterval(bombTimer);
+  const card = document.getElementById('overlay-card');
+  card.className = 'overlay-card win';
+  document.getElementById('overlay-big').textContent = 'DEFUSED';
+  document.getElementById('overlay-sub').textContent = 'All '+allModuleIds.length+' modules cleared with '+fmt(timeLeft)+' left on the clock, and '+mistakes+' mistake(s) made.';
+  document.getElementById('overlay').classList.add('active');
+}
+function renderDots(containerId, count, filled){
+  const c = document.getElementById(containerId);
+  if(!c) return;
+  c.innerHTML='';
+  for(let i=0;i<count;i++){
+    const d = document.createElement('span');
+    d.className = 'dot'+(i<filled?' filled':'');
+    c.appendChild(d);
+  }
+}
+function switchSide(name){
+  document.querySelectorAll('.sideSection').forEach(s=>s.classList.remove('active'));
+  document.getElementById('side-'+name).classList.add('active');
+  document.querySelectorAll('.sidebtn').forEach(b=>b.classList.toggle('active', b.dataset.side===name));
+}
+
+/* ================= MODULE SHELL ================= */
+function moduleShell(id, label){
+  const div = document.createElement('div');
+  div.className='module';
+  div.id=id;
+  div.innerHTML = `<div class="led" id="${id}-led"></div><div class="mtitle">${label}</div><div class="mbody" id="${id}-body"></div>`;
+  return div;
+}
+function createModule(type, gridEl){
+  const num = ++instanceCounters[type];
+  const id = type+'-'+num;
+  const label = typeLabels[type] + (romanSuffix[num-1] || ' '+num);
+  const el = moduleShell(id, label);
+  gridEl.appendChild(el);
+  allModuleIds.push(id);
+  moduleState[id] = {type, solved:false};
+  const initFns = {
+    counting_basics: initCountingBasics, factorials: initFactorials, perm_comb: initPermComb,
+    calc_counting: initCalcCounting, cardinality: initCardinality, set_ops: initSetOps,
+    set_laws: initSetLaws, demorgan: initDemorgan, venn: initVenn,
+  };
+  initFns[type](id);
+}
+
+/* ================= COUNTING BASICS (multiple choice) ================= */
+const MC_NEEDED = 3;
+function nextCountingBasics(id){
+  const { idx, q } = pickQuestion(countingQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
+  moduleState[id].current = q;
+  document.getElementById(id+'-case').textContent = q.text;
+  const box = document.getElementById(id+'-choices');
+  box.innerHTML='';
+  shuffle(q.options).forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='choice2';
+    btn.textContent = opt;
+    btn.onclick = ()=>answerCountingBasics(id, opt, btn);
+    box.appendChild(btn);
+  });
+}
+function initCountingBasics(id){
+  moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
+  renderDots(id+'-dots', MC_NEEDED, 0);
+  nextCountingBasics(id);
+}
+function answerCountingBasics(id, opt, btn){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const correct = st.current.answer;
+  document.querySelectorAll('#'+id+'-choices .choice2').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  st.usedIndices.push(st.currentIdx);
+  if(opt===correct){
+    st.streak++;
+    renderDots(id+'-dots', MC_NEEDED, st.streak);
+    if(st.streak>=MC_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', MC_NEEDED, 0);
+    penalize(id);
+  }
+  setTimeout(()=>nextCountingBasics(id), 700);
+}
+
+/* ================= FACTORIALS (multiple choice) ================= */
+function nextFactorials(id){
+  const { idx, q } = pickQuestion(factorialQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
+  moduleState[id].current = q;
+  document.getElementById(id+'-case').textContent = q.text;
+  const box = document.getElementById(id+'-choices');
+  box.innerHTML='';
+  shuffle(q.options).forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='choice2';
+    btn.textContent = opt;
+    btn.onclick = ()=>answerFactorials(id, opt, btn);
+    box.appendChild(btn);
+  });
+}
+function initFactorials(id){
+  moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
+  renderDots(id+'-dots', MC_NEEDED, 0);
+  nextFactorials(id);
+}
+function answerFactorials(id, opt, btn){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const correct = st.current.answer;
+  document.querySelectorAll('#'+id+'-choices .choice2').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  st.usedIndices.push(st.currentIdx);
+  if(opt===correct){
+    st.streak++;
+    renderDots(id+'-dots', MC_NEEDED, st.streak);
+    if(st.streak>=MC_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', MC_NEEDED, 0);
+    penalize(id);
+  }
+  setTimeout(()=>nextFactorials(id), 700);
+}
+
+/* ================= PERMUTATION OR COMBINATION (two-bin sort) ================= */
+function nextPermComb(id){
+  const item = permCombItems[Math.floor(Math.random()*permCombItems.length)];
+  moduleState[id].current = item;
+  document.getElementById(id+'-name').textContent = item.text;
+}
+const TWO_NEEDED = 3;
+function initPermComb(id){
+  moduleState[id].streak = 0;
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `
+    <div class="sort-name" id="${id}-name">—</div>
+    <div class="bins2 two">
+      <div class="bin2" data-c="Permutation">PERMUTATION</div>
+      <div class="bin2" data-c="Combination">COMBINATION</div>
+    </div>
+    <div class="progress-dots" id="${id}-dots"></div>`;
+  body.querySelectorAll('.bin2').forEach(b=>{ b.onclick = ()=>answerPermComb(id, b.dataset.c); });
+  renderDots(id+'-dots', TWO_NEEDED, 0);
+  nextPermComb(id);
+}
+function answerPermComb(id, cat){
+  const st = moduleState[id];
+  if(st.solved) return;
+  if(cat === st.current.answer){
+    st.streak++;
+    renderDots(id+'-dots', TWO_NEEDED, st.streak);
+    if(st.streak>=TWO_NEEDED){ markSolved(id); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', TWO_NEEDED, 0);
+    penalize(id);
+  }
+  nextPermComb(id);
+}
+
+/* ================= CALCULATE COUNTING (multiple choice) ================= */
+function nextCalcCounting(id){
+  const { idx, q } = pickQuestion(calcQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
+  moduleState[id].current = q;
+  document.getElementById(id+'-case').textContent = q.text;
+  const box = document.getElementById(id+'-choices');
+  box.innerHTML='';
+  shuffle(q.options).forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='choice2';
+    btn.textContent = opt;
+    btn.onclick = ()=>answerCalcCounting(id, opt, btn);
+    box.appendChild(btn);
+  });
+}
+function initCalcCounting(id){
+  moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
+  renderDots(id+'-dots', MC_NEEDED, 0);
+  nextCalcCounting(id);
+}
+function answerCalcCounting(id, opt, btn){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const correct = st.current.answer;
+  document.querySelectorAll('#'+id+'-choices .choice2').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  st.usedIndices.push(st.currentIdx);
+  if(opt===correct){
+    st.streak++;
+    renderDots(id+'-dots', MC_NEEDED, st.streak);
+    if(st.streak>=MC_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', MC_NEEDED, 0);
+    penalize(id);
+  }
+  setTimeout(()=>nextCalcCounting(id), 700);
+}
+
+/* ================= CARDINALITY & SET TYPES (multiple choice) ================= */
+function nextCardinality(id){
+  const { idx, q } = pickQuestion(cardinalityQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
+  moduleState[id].current = q;
+  document.getElementById(id+'-case').textContent = q.text;
+  const box = document.getElementById(id+'-choices');
+  box.innerHTML='';
+  shuffle(q.options).forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='choice2';
+    btn.textContent = opt;
+    btn.onclick = ()=>answerCardinality(id, opt, btn);
+    box.appendChild(btn);
+  });
+}
+function initCardinality(id){
+  moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
+  renderDots(id+'-dots', MC_NEEDED, 0);
+  nextCardinality(id);
+}
+function answerCardinality(id, opt, btn){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const correct = st.current.answer;
+  document.querySelectorAll('#'+id+'-choices .choice2').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  st.usedIndices.push(st.currentIdx);
+  if(opt===correct){
+    st.streak++;
+    renderDots(id+'-dots', MC_NEEDED, st.streak);
+    if(st.streak>=MC_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', MC_NEEDED, 0);
+    penalize(id);
+  }
+  setTimeout(()=>nextCardinality(id), 700);
+}
+
+/* ================= SET OPERATIONS (multiple choice) ================= */
+function nextSetOps(id){
+  const { idx, q } = pickQuestion(setOpQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
+  moduleState[id].current = q;
+  document.getElementById(id+'-case').textContent = q.text;
+  const box = document.getElementById(id+'-choices');
+  box.innerHTML='';
+  shuffle(q.options).forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='choice2';
+    btn.textContent = opt;
+    btn.onclick = ()=>answerSetOps(id, opt, btn);
+    box.appendChild(btn);
+  });
+}
+function initSetOps(id){
+  moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
+  renderDots(id+'-dots', MC_NEEDED, 0);
+  nextSetOps(id);
+}
+function answerSetOps(id, opt, btn){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const correct = st.current.answer;
+  document.querySelectorAll('#'+id+'-choices .choice2').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  st.usedIndices.push(st.currentIdx);
+  if(opt===correct){
+    st.streak++;
+    renderDots(id+'-dots', MC_NEEDED, st.streak);
+    if(st.streak>=MC_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', MC_NEEDED, 0);
+    penalize(id);
+  }
+  setTimeout(()=>nextSetOps(id), 700);
+}
+
+/* ================= SET IDENTITIES (matching pairs) ================= */
+function initSetLaws(id){
+  const left = shuffle(setLawPairs.map((p,i)=>({label:p.law, pairIdx:i})));
+  const right = shuffle(setLawPairs.map((p,i)=>({label:p.formula, pairIdx:i})));
+  moduleState[id].left = left;
+  moduleState[id].right = right;
+  moduleState[id].selectedLeft = null;
+  moduleState[id].solvedPairs = 0;
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="connect-wrap">
+      <div class="connect-col" id="${id}-left"></div>
+      <div class="connect-col" id="${id}-right"></div>
+    </div>`;
+  const leftCol = document.getElementById(id+'-left');
+  left.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className='connect-item';
+    div.textContent = item.label;
+    div.onclick = ()=>selectSetLawsLeft(id, idx);
+    leftCol.appendChild(div);
+  });
+  const rightCol = document.getElementById(id+'-right');
+  right.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className='connect-item';
+    div.textContent = item.label;
+    div.onclick = ()=>selectSetLawsRight(id, idx);
+    rightCol.appendChild(div);
+  });
+}
+function selectSetLawsLeft(id, idx){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const leftEls = document.querySelectorAll('#'+id+'-left .connect-item');
+  if(leftEls[idx].classList.contains('solved')) return;
+  leftEls.forEach(e=>e.classList.remove('selected'));
+  leftEls[idx].classList.add('selected');
+  st.selectedLeft = idx;
+}
+function selectSetLawsRight(id, idx){
+  const st = moduleState[id];
+  if(st.solved || st.selectedLeft===null) return;
+  const rightEls = document.querySelectorAll('#'+id+'-right .connect-item');
+  if(rightEls[idx].classList.contains('solved')) return;
+  const leftEls = document.querySelectorAll('#'+id+'-left .connect-item');
+  const leftPick = st.left[st.selectedLeft];
+  const rightPick = st.right[idx];
+  if(leftPick.pairIdx === rightPick.pairIdx){
+    leftEls[st.selectedLeft].classList.add('solved');
+    leftEls[st.selectedLeft].classList.remove('selected');
+    rightEls[idx].classList.add('solved');
+    st.selectedLeft = null;
+    st.solvedPairs++;
+    if(st.solvedPairs>=setLawPairs.length) markSolved(id);
+  } else {
+    penalize(id);
+    leftEls.forEach(e=>e.classList.remove('selected'));
+    st.selectedLeft = null;
+  }
+}
+
+/* ================= DE MORGAN'S LAWS (matching pairs) ================= */
+function initDemorgan(id){
+  const left = shuffle(demorganPairs.map((p,i)=>({label:p.expr, pairIdx:i})));
+  const right = shuffle(demorganPairs.map((p,i)=>({label:p.equiv, pairIdx:i})));
+  moduleState[id].left = left;
+  moduleState[id].right = right;
+  moduleState[id].selectedLeft = null;
+  moduleState[id].solvedPairs = 0;
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="connect-wrap">
+      <div class="connect-col" id="${id}-left"></div>
+      <div class="connect-col" id="${id}-right"></div>
+    </div>`;
+  const leftCol = document.getElementById(id+'-left');
+  left.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className='connect-item';
+    div.textContent = item.label;
+    div.onclick = ()=>selectDemorganLeft(id, idx);
+    leftCol.appendChild(div);
+  });
+  const rightCol = document.getElementById(id+'-right');
+  right.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className='connect-item';
+    div.textContent = item.label;
+    div.onclick = ()=>selectDemorganRight(id, idx);
+    rightCol.appendChild(div);
+  });
+}
+function selectDemorganLeft(id, idx){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const leftEls = document.querySelectorAll('#'+id+'-left .connect-item');
+  if(leftEls[idx].classList.contains('solved')) return;
+  leftEls.forEach(e=>e.classList.remove('selected'));
+  leftEls[idx].classList.add('selected');
+  st.selectedLeft = idx;
+}
+function selectDemorganRight(id, idx){
+  const st = moduleState[id];
+  if(st.solved || st.selectedLeft===null) return;
+  const rightEls = document.querySelectorAll('#'+id+'-right .connect-item');
+  if(rightEls[idx].classList.contains('solved')) return;
+  const leftEls = document.querySelectorAll('#'+id+'-left .connect-item');
+  const leftPick = st.left[st.selectedLeft];
+  const rightPick = st.right[idx];
+  if(leftPick.pairIdx === rightPick.pairIdx){
+    leftEls[st.selectedLeft].classList.add('solved');
+    leftEls[st.selectedLeft].classList.remove('selected');
+    rightEls[idx].classList.add('solved');
+    st.selectedLeft = null;
+    st.solvedPairs++;
+    if(st.solvedPairs>=demorganPairs.length) markSolved(id);
+  } else {
+    penalize(id);
+    leftEls.forEach(e=>e.classList.remove('selected'));
+    st.selectedLeft = null;
+  }
+}
+
+/* ================= VENN DIAGRAM WORD PROBLEMS (multiple choice) ================= */
+function nextVenn(id){
+  const { idx, q } = pickQuestion(vennQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
+  moduleState[id].current = q;
+  document.getElementById(id+'-case').textContent = q.text;
+  const box = document.getElementById(id+'-choices');
+  box.innerHTML='';
+  shuffle(q.options).forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='choice2';
+    btn.textContent = opt;
+    btn.onclick = ()=>answerVenn(id, opt, btn);
+    box.appendChild(btn);
+  });
+}
+function initVenn(id){
+  moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
+  renderDots(id+'-dots', MC_NEEDED, 0);
+  nextVenn(id);
+}
+function answerVenn(id, opt, btn){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const correct = st.current.answer;
+  document.querySelectorAll('#'+id+'-choices .choice2').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  st.usedIndices.push(st.currentIdx);
+  if(opt===correct){
+    st.streak++;
+    renderDots(id+'-dots', MC_NEEDED, st.streak);
+    if(st.streak>=MC_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', MC_NEEDED, 0);
+    penalize(id);
+  }
+  setTimeout(()=>nextVenn(id), 700);
+}
+
+/* ================= GAME START ================= */
+const DIFFICULTY_CONFIG = {
+  easy:   {sides:['front','back'], perSide:4, time:120},
+  medium: {sides:['front','back'], perSide:6, time:120},
+  hard:   {sides:['front','back','left','right','bottom'], perSide:8, time:420},
+};
+
+function buildSideSection(sideName, isFirst){
+  const section = document.createElement('div');
+  section.className = 'sideSection'+(isFirst?' active':'');
+  section.id = 'side-'+sideName;
+  let html = '';
+  if(sideName==='front'){
+    html += `<div class="timer-wrap">
+      <div class="timer" id="timer">00:00</div>
+      <div class="strikes">MISTAKES COST <b>-10s</b> EACH</div>
+    </div>`;
+  } else {
+    html += `<div class="backnote">${sideName.toUpperCase()} — no clock here. Return to the FRONT to check the time.</div>`;
+  }
+  html += `<div class="solvedcount">SOLVED 0/0</div>`;
+  html += `<div class="module-grid" id="grid-${sideName}"></div>`;
+  section.innerHTML = html;
+  return section;
+}
+
+function startGame(difficulty){
+  document.getElementById('setup').style.display='none';
+  document.getElementById('game').style.display='block';
+
+  const cfg = DIFFICULTY_CONFIG[difficulty];
+  timeLeft = cfg.time;
+
+  const sidesContainer = document.getElementById('sidesContainer');
+  sidesContainer.innerHTML = '';
+  const nav = document.getElementById('sideNav');
+  nav.innerHTML = '';
+
+  cfg.sides.forEach((sideName, i)=>{
+    const section = buildSideSection(sideName, i===0);
+    sidesContainer.appendChild(section);
+
+    const navBtn = document.createElement('button');
+    navBtn.className = 'sidebtn'+(i===0?' active':'');
+    navBtn.dataset.side = sideName;
+    navBtn.textContent = sideName.toUpperCase();
+    navBtn.onclick = ()=>switchSide(sideName);
+    nav.appendChild(navBtn);
+
+    const gridEl = document.getElementById('grid-'+sideName);
+    gridEl.style.setProperty('--cols', cfg.perSide/2);
+    const sideTypes = shuffle(ALL_TYPES).slice(0, cfg.perSide);
+    sideTypes.forEach(t=>createModule(t, gridEl));
+  });
+
+  updateSolvedCounts();
+  startBomb();
+}
+</script>
+</body>
+</html>

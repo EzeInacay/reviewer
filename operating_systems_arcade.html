@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Operating Systems — Defusal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#151a22; --panel-edge:#2a323f; --steel:#8a929f;
+    --red:#e2352f; --red-dim:#7a1e1b; --phosphor:#6df7c1; --gold:#f2c14e;
+    --text:#eef1f5; --text-dim:#9aa2b1; --mono:'Space Mono', monospace; --sans:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:#050608; color:var(--text); font-family:var(--sans); min-height:100vh; padding:14px; }
+  .frame{ max-width:1020px;margin:0 auto; border:6px solid var(--red); border-radius:10px; background:#0a0c10; padding:16px; box-shadow:0 0 40px rgba(226,53,47,0.15); }
+  .frame.critical{ animation:critical-pulse .6s infinite; }
+  @keyframes critical-pulse{ 0%,100%{box-shadow:0 0 20px rgba(226,53,47,0.2);} 50%{box-shadow:0 0 55px rgba(226,53,47,0.55);} }
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;}
+  .logo{font-family:var(--mono); font-weight:700; line-height:1.1;}
+  .logo .l1{font-size:20px; letter-spacing:.12em; color:var(--red);}
+  .logo .l2{font-size:11px; letter-spacing:.14em; color:var(--text-dim);}
+  a.homelink{font-family:var(--mono); font-size:11px; color:var(--text-dim); text-decoration:none; border:1px solid var(--panel-edge); border-radius:6px; padding:6px 10px;}
+  a.homelink:hover{border-color:var(--red); color:var(--red);}
+
+  .setup-title{font-family:var(--mono); font-size:13px; letter-spacing:.1em; color:var(--text-dim); text-align:center; margin:20px 0 14px;}
+  .diffbtn{ display:block; width:100%; max-width:460px; margin:0 auto 12px; font-family:var(--mono); font-size:13px; text-align:left; background:var(--panel); border:1px solid var(--panel-edge); color:var(--text); border-radius:8px; padding:14px 16px; cursor:pointer; }
+  .diffbtn b{display:block; font-size:15px; color:var(--phosphor); margin-bottom:3px;}
+  .diffbtn:hover{border-color:var(--phosphor);}
+
+  .timer-wrap{text-align:center; margin:6px auto 14px;}
+  .timer{ display:inline-block; font-family:var(--mono); font-size:42px; font-weight:700; background:#03110a; color:var(--phosphor); border:2px solid #0e3a28; border-radius:8px; padding:6px 22px; letter-spacing:.06em; text-shadow:0 0 10px rgba(109,247,193,.6); }
+  .timer.low{color:var(--red); text-shadow:0 0 14px rgba(226,53,47,.8); border-color:var(--red-dim);}
+  .strikes{font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-top:6px;}
+  .strikes b{color:var(--red);}
+  .solvedcount{font-family:var(--mono); font-size:11px; color:var(--phosphor); margin:6px 0 10px; text-align:center;}
+
+  .sidenav{display:flex; justify-content:center; gap:6px; flex-wrap:wrap; margin-bottom:12px;}
+  .sidebtn{ font-family:var(--mono); font-size:11px; background:var(--panel); border:1px solid var(--panel-edge); color:var(--steel); border-radius:6px; padding:7px 12px; cursor:pointer; }
+  .sidebtn:hover{border-color:var(--gold); color:var(--gold);}
+  .sidebtn.active{border-color:var(--phosphor); color:var(--phosphor);}
+  .backnote{text-align:center; font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-bottom:10px;}
+
+  .sideSection{display:none;}
+  .sideSection.active{display:block;}
+
+  .module-grid{ display:grid; grid-template-columns:repeat(var(--cols,3),1fr); gap:14px; }
+  @media (max-width:820px){ .module-grid{grid-template-columns:1fr 1fr;} }
+  @media (max-width:560px){ .module-grid{grid-template-columns:1fr;} }
+
+  .module{ position:relative; background:var(--panel); border:2px solid var(--panel-edge); border-radius:10px; padding:16px 14px 14px; min-height:190px; }
+  .module.solved{border-color:#1f6b4c;}
+  .led{ position:absolute; top:10px; left:10px; width:12px; height:12px; border-radius:50%; background:#4a0d0b; border:1px solid #300; box-shadow:inset 0 0 3px #000; }
+  .led.on{ background:var(--phosphor); border-color:var(--phosphor); box-shadow:0 0 10px var(--phosphor); }
+  .mtitle{ font-family:var(--mono); font-size:11.5px; letter-spacing:.06em; color:var(--steel); text-transform:uppercase; text-align:center; margin-bottom:10px; }
+  .mbody{font-size:13px;}
+  .progress-dots{display:flex; justify-content:center; gap:6px; margin-top:10px;}
+  .dot{width:8px;height:8px;border-radius:50%; background:#333c48; border:1px solid #444e5e;}
+  .dot.filled{background:var(--phosphor); border-color:var(--phosphor);}
+
+  .shake{animation:shakeit .3s;}
+  @keyframes shakeit{25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
+
+  .wire-row{ display:flex; align-items:center; gap:8px; background:#0e1420; border:1px solid var(--panel-edge); border-radius:6px; padding:8px 10px; margin-bottom:6px; cursor:pointer; font-size:11.5px; }
+  .wire-row:hover{border-color:var(--steel);}
+  .wire-row.cut{opacity:.45; border-color:#1f6b4c; cursor:default; text-decoration:line-through; color:var(--phosphor);}
+  .wire-dot{width:14px;height:6px;border-radius:3px; flex-shrink:0;}
+  .w0{background:#c0392b;} .w1{background:#e2965f;} .w2{background:#f2c14e;} .w3{background:#6df7c1;} .w4{background:#5fa8e2;} .w5{background:#b57bd6;} .w6{background:#5fe2c0;}
+
+  .sort-name{font-family:var(--mono); font-size:15px; text-align:center; margin-bottom:12px; color:var(--text);}
+  .bins2{display:grid; grid-template-columns:1fr 1fr; gap:6px;}
+  .bins2.five{grid-template-columns:repeat(5,1fr);}
+  .bin2{font-size:11px; font-weight:600; background:#0e1420; border:1px solid var(--panel-edge); border-radius:6px; padding:9px 4px; text-align:center; cursor:pointer;}
+  .bin2:hover{border-color:var(--phosphor); color:var(--phosphor);}
+  .case2{font-size:11.5px; line-height:1.5; margin-bottom:10px; color:var(--text);}
+  .choice2{display:block; width:100%; text-align:left; font-size:11px; background:#0e1420; border:1px solid var(--panel-edge); color:var(--text); border-radius:6px; padding:8px 10px; margin-bottom:6px; cursor:pointer;}
+  .choice2:hover{border-color:var(--steel);}
+  .choice2.correct{border-color:var(--phosphor); color:var(--phosphor);}
+  .choice2.wrong{border-color:var(--red); color:var(--red);}
+
+  .connect-wrap{display:flex; gap:10px;}
+  .connect-col{flex:1; display:flex; flex-direction:column; gap:6px;}
+  .connect-item{ font-size:11px; background:#0e1420; border:1px solid var(--panel-edge); color:var(--text); border-radius:6px; padding:8px 6px; text-align:center; cursor:pointer; }
+  .connect-item:hover{border-color:var(--steel);}
+  .connect-item.selected{border-color:var(--gold); color:var(--gold);}
+  .connect-item.solved{border-color:#1f6b4c; color:var(--phosphor); opacity:.6; cursor:default;}
+
+  button.action{font-family:var(--sans); font-weight:600; font-size:13px; background:var(--steel); color:#111; border:none; border-radius:6px; padding:8px 12px; cursor:pointer; width:100%;}
+  button.action:hover{background:#a9b2bf;}
+
+  .overlay{ position:fixed; inset:0; background:rgba(3,4,6,0.92); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .overlay.active{display:flex;}
+  .overlay-card{ text-align:center; max-width:360px; width:100%; background:var(--panel); border:2px solid var(--panel-edge); border-radius:12px; padding:28px 20px; }
+  .overlay-card.win{border-color:var(--phosphor);}
+  .overlay-card.lose{border-color:var(--red);}
+  .overlay-big{font-family:var(--mono); font-size:26px; margin-bottom:8px;}
+  .overlay-card.win .overlay-big{color:var(--phosphor);}
+  .overlay-card.lose .overlay-big{color:var(--red);}
+  .overlay-sub{color:var(--text-dim); font-size:13px; margin-bottom:18px;}
+</style>
+</head>
+<body>
+<div class="frame" id="frame">
+  <div class="topbar">
+    <a class="homelink" href="index.html">&larr; HOME</a>
+    <div class="logo" style="text-align:right;">
+      <div class="l1">DEFUSAL</div>
+      <div class="l2">OPERATING SYSTEMS</div>
+    </div>
+  </div>
+
+  <div id="setup">
+    <div class="setup-title">SELECT DIFFICULTY</div>
+    <button class="diffbtn" onclick="startGame('easy')"><b>EASY</b>4 modules per side · front &amp; back · 2:00 on the clock</button>
+    <button class="diffbtn" onclick="startGame('medium')"><b>MEDIUM</b>6 modules per side (3×2) · front &amp; back · 2:00 on the clock</button>
+    <button class="diffbtn" onclick="startGame('hard')"><b>HARD</b>8 modules per side · front, back, left, right &amp; bottom · 7:00 on the clock — only the front shows the clock</button>
+  </div>
+
+  <div id="game" style="display:none;">
+    <div class="sidenav" id="sideNav"></div>
+    <div id="sidesContainer"></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-card" id="overlay-card">
+    <div class="overlay-big" id="overlay-big">—</div>
+    <div class="overlay-sub" id="overlay-sub">—</div>
+    <button class="action" onclick="location.reload()">TRY AGAIN</button>
+  </div>
+</div>
+
+<script>
+/* ================= UTIL ================= */
+function shuffle(arr){ return [...arr].sort(()=>Math.random()-0.5); }
+function fmt(t){ const m=Math.floor(t/60).toString().padStart(2,'0'); const s=Math.floor(t%60).toString().padStart(2,'0'); return m+':'+s; }
+function pickQuestion(pool, usedIndices){
+  const available = pool.filter((_, i) => !usedIndices.includes(i));
+  if (available.length === 0) { usedIndices.length = 0; }
+  const src = available.length ? available : pool;
+  const idx = pool.indexOf(src[Math.floor(Math.random()*src.length)]);
+  return { idx, q: pool[idx] };
+}
+
+/* ================= OS CONTENT POOLS (based on Operating Systems - Ladderization Reviewer) ================= */
+
+/* -- CPU Architecture: multiple choice -- */
+const cpuArchQuestions = [
+  {text:'What does ALU stand for?', options:['Arithmetic Logic Unit','Advanced Logic Unit','Arithmetic Loading Unit','Algorithmic Logic Unit'], answer:'Arithmetic Logic Unit'},
+  {text:'What does CU stand for in CPU architecture?', options:['Control Unit','Computing Unit','Cache Unit','Clock Unit'], answer:'Control Unit'},
+  {text:'Which CPU component performs arithmetic and logical operations?', options:['ALU','Control Unit','Registers','Cache'], answer:'ALU'},
+  {text:'Which CPU component decodes instructions and coordinates data flow?', options:['Control Unit','ALU','Registers','Cache'], answer:'Control Unit'},
+  {text:'Which CPU component holds small amounts of fast-access data used during execution?', options:['Registers','Cache','RAM','Hard Drive'], answer:'Registers'},
+  {text:'What is the correct order of the Fetch-Decode-Execute cycle?', options:['Fetch -> Decode -> Execute','Decode -> Fetch -> Execute','Execute -> Fetch -> Decode','Fetch -> Execute -> Decode'], answer:'Fetch -> Decode -> Execute'},
+  {text:'Clock speed in a CPU is measured in units of:', options:['Hertz (Hz)','Bytes per second','Watts','Volts'], answer:'Hertz (Hz)'},
+  {text:'Which architecture uses a smaller, simpler set of instructions?', options:['RISC (ARM)','CISC (x86)','Both use the same','Neither'], answer:'RISC (ARM)'},
+  {text:'Which architecture uses a larger, more complex set of instructions?', options:['CISC (x86)','RISC (ARM)','Both use the same','Neither'], answer:'CISC (x86)'},
+  {text:'What is pipelining in CPU design?', options:['Overlapping execution of multiple instructions','Increasing clock speed','Adding more cache','Connecting multiple CPUs'], answer:'Overlapping execution of multiple instructions'},
+  {text:'A multi-core processor contains:', options:['Multiple CPU cores on a single chip','Multiple motherboards','Multiple power supplies','Multiple operating systems'], answer:'Multiple CPU cores on a single chip'},
+  {text:'Which factor does NOT affect CPU performance?', options:['Monitor size','Clock speed','Number of cores','Cache size'], answer:'Monitor size'},
+  {text:'Registers are located:', options:['Inside the CPU','On the motherboard','In RAM','On the hard drive'], answer:'Inside the CPU'},
+  {text:'Which of the following is NOT a type of CPU register?', options:['ALU Register','Program Counter (PC)','Instruction Register (IR)','Memory Address Register (MAR)'], answer:'ALU Register'},
+];
+
+/* -- Booting Process: multiple choice -- */
+const bootingQuestions = [
+  {text:'A cold boot occurs when:', options:['The computer is turned on from a powered-off state','The computer is restarted without cutting power','The computer enters sleep mode','The monitor is turned on'], answer:'The computer is turned on from a powered-off state'},
+  {text:'A warm boot occurs when:', options:['The computer is restarted without cutting power','The computer is turned on from off','The computer is shut down completely','The power cable is unplugged'], answer:'The computer is restarted without cutting power'},
+  {text:'What does POST stand for?', options:['Power-On Self-Test','Pre-Operational System Test','Primary Operating System Test','Post-Operational Startup Test'], answer:'Power-On Self-Test'},
+  {text:'What is the modern replacement for BIOS?', options:['UEFI','GPT','MBR','CMOS'], answer:'UEFI'},
+  {text:'Which of these is a boot loader used in Linux?', options:['GRUB','Windows Boot Manager','rEFInd','All of the above'], answer:'GRUB'},
+  {text:'Which partition scheme is the modern replacement for MBR?', options:['GPT','BIOS','UEFI','FAT32'], answer:'GPT'},
+  {text:'What is the first step in the boot sequence?', options:['Power supply sends signal to the motherboard','BIOS loads the boot loader','POST runs','Kernel initializes'], answer:'Power supply sends signal to the motherboard'},
+  {text:'The traditional BIOS uses which partition scheme?', options:['MBR','GPT','UEFI','EXT4'], answer:'MBR'},
+  {text:'UEFI typically boots faster than BIOS because:', options:['It initializes hardware in parallel','It uses a slower CPU','It skips POST entirely','It does not need a boot loader'], answer:'It initializes hardware in parallel'},
+  {text:'Which of the following is NOT a boot loader?', options:['BIOS','GRUB','Windows Boot Manager','rEFInd'], answer:'BIOS'},
+  {text:'A common boot error "Operating System not found" may indicate:', options:['Corrupted boot loader or missing OS files','The monitor is unplugged','The CPU is overheating','The power supply is failing'], answer:'Corrupted boot loader or missing OS files'},
+  {text:'The boot sequence begins after:', options:['POST completes successfully','The user logs in','Windows starts','The hard drive spins up'], answer:'POST completes successfully'},
+];
+
+/* -- Process Management: multiple choice -- */
+const processMgmtQuestions = [
+  {text:'A program stored on disk is best described as:', options:['A passive entity','An active entity','A process','A thread'], answer:'A passive entity'},
+  {text:'A program loaded into memory and under execution is called a:', options:['Process','Program','File','Function'], answer:'Process'},
+  {text:'Which state comes right after "New" in the process life cycle?', options:['Ready','Running','Waiting','Terminated'], answer:'Ready'},
+  {text:'When a process is assigned to the CPU, it enters which state?', options:['Running','Ready','Waiting','New'], answer:'Running'},
+  {text:'What does PCB stand for?', options:['Process Control Block','Program Control Block','Processor Command Block','Primary Control Block'], answer:'Process Control Block'},
+  {text:'What information is NOT typically stored in a PCB?', options:['Source code of the process','Process state','Program Counter','CPU registers'], answer:'Source code of the process'},
+  {text:'Long-term scheduling controls:', options:['Which programs are admitted to the system','Which process runs next on the CPU','The degree of multiprogramming','Both A and C'], answer:'Both A and C'},
+  {text:'Short-term scheduling (CPU scheduler) selects:', options:['Which ready process runs next','Which program is loaded into memory','How much RAM a process uses','The order of I/O operations'], answer:'Which ready process runs next'},
+  {text:'Context switching involves:', options:['Saving and restoring process state to switch between processes','Installing a new operating system','Upgrading the CPU','Switching between user accounts'], answer:'Saving and restoring process state to switch between processes'},
+  {text:'A thread differs from a process in that threads:', options:['Share the same address space','Have their own separate memory','Cannot run concurrently','Are always faster'], answer:'Share the same address space'},
+  {text:'When a process waits for I/O to complete, it enters which state?', options:['Waiting','Ready','Running','Terminated'], answer:'Waiting'},
+  {text:'When a process finishes execution, it enters which state?', options:['Terminated','Waiting','Ready','Running'], answer:'Terminated'},
+  {text:'The Process Control Block (PCB) is created when:', options:['A process is created','A program is compiled','The OS is installed','The computer boots'], answer:'A process is created'},
+  {text:'Switching between threads of the same process is generally:', options:['Faster than switching between processes','Slower than switching between processes','The same speed','Not possible'], answer:'Faster than switching between processes'},
+];
+
+/* -- Scheduling Algorithms: multiple choice -- */
+const schedulingQuestions = [
+  {text:'In FCFS scheduling, the process that arrives first is:', options:['Served first','Served last','Given the highest priority','Given the smallest time slice'], answer:'Served first'},
+  {text:'What does FCFS stand for?', options:['First-Come, First-Served','Fastest CPU First Served','First-Core, First-Scheduled','Fixed Cycle Fast Service'], answer:'First-Come, First-Served'},
+  {text:'Which scheduling algorithm selects the process with the shortest burst time?', options:['SJF (Shortest Job First)','FCFS','Round Robin','Priority Scheduling'], answer:'SJF (Shortest Job First)'},
+  {text:'SJF scheduling minimizes:', options:['Average waiting time','CPU utilization','Number of processes','Context switching'], answer:'Average waiting time'},
+  {text:'In Round Robin scheduling, each process is given a fixed:', options:['Time quantum / time slice','Priority number','Burst time','Memory allocation'], answer:'Time quantum / time slice'},
+  {text:'Round Robin is especially suitable for:', options:['Time-sharing systems','Batch systems','Real-time systems','Embedded systems'], answer:'Time-sharing systems'},
+  {text:'In Priority Scheduling, the process with the highest priority (lowest number) runs:', options:['First','Last','After all others','In random order'], answer:'First'},
+  {text:'A disadvantage of Priority Scheduling is:', options:['Starvation of low-priority processes','High overhead','Complex implementation','Poor CPU utilization'], answer:'Starvation of low-priority processes'},
+  {text:'Which algorithm is most likely to cause the convoy effect?', options:['FCFS','SJF','Round Robin','Priority'], answer:'FCFS'},
+  {text:'Medium-term scheduling involves:', options:['Moving processes between main memory and disk (swapping)','Choosing which process runs next','Admitting new processes','Managing I/O requests'], answer:'Moving processes between main memory and disk (swapping)'},
+];
+
+/* -- Storage Management: multiple choice + sort items -- */
+const storageMCQuestions = [
+  {text:'Which of the following is the fastest storage in the memory hierarchy?', options:['Registers','Cache','RAM','SSD'], answer:'Registers'},
+  {text:'Which is faster: Cache or RAM?', options:['Cache','RAM','They are the same speed','Neither can be compared'], answer:'Cache'},
+  {text:'Which is faster: SSD or HDD?', options:['SSD','HDD','They are the same speed','Neither can be compared'], answer:'SSD'},
+  {text:'What does RAID stand for?', options:['Redundant Array of Independent Disks','Random Access for Integrated Drives','Rapid Array of Internal Disks','Redundant Access of Integrated Data'], answer:'Redundant Array of Independent Disks'},
+  {text:'Which RAID level provides mirroring (data duplication)?', options:['RAID 1','RAID 0','RAID 5','RAID 6'], answer:'RAID 1'},
+  {text:'Which RAID level provides striping without parity?', options:['RAID 0','RAID 1','RAID 5','RAID 10'], answer:'RAID 0'},
+  {text:'Which RAID level provides striping with distributed parity?', options:['RAID 5','RAID 0','RAID 1','RAID 6'], answer:'RAID 5'},
+  {text:'Which file system is commonly used by Windows?', options:['NTFS','ext4','APFS','FAT32'], answer:'NTFS'},
+  {text:'Which file system is commonly used by Linux?', options:['ext4','NTFS','APFS','FAT32'], answer:'ext4'},
+  {text:'Which file system is commonly used by macOS?', options:['APFS','NTFS','ext4','FAT32'], answer:'APFS'},
+  {text:'Virtual memory allows a program to:', options:['Use more memory than physically available','Run without RAM','Access the internet','Run on any CPU'], answer:'Use more memory than physically available'},
+  {text:'Paging divides memory into fixed-size blocks called:', options:['Pages and frames','Segments','Sectors','Blocks'], answer:'Pages and frames'},
+  {text:'The SCAN disk scheduling algorithm is also known as:', options:['Elevator algorithm','Circular algorithm','Shortest seek algorithm','First-come algorithm'], answer:'Elevator algorithm'},
+  {text:'In disk scheduling, SSTF stands for:', options:['Shortest Seek Time First','Sector Service Time First','Sequential Seek Time First','Shortest Scan Time First'], answer:'Shortest Seek Time First'},
+];
+
+const storageSortItems = [
+  {name:'Register', cat:'Fastest'}, {name:'Cache (L1/L2/L3)', cat:'Fastest'},
+  {name:'RAM (Main Memory)', cat:'Medium'}, {name:'SSD', cat:'Slow'},
+  {name:'HDD', cat:'Slow'}, {name:'USB Flash Drive', cat:'Slow'},
+  {name:'RAID 0', cat:'Striping'}, {name:'RAID 1', cat:'Mirroring'},
+  {name:'RAID 5', cat:'Striping with Parity'},
+];
+
+/* -- Computer Protection: multiple choice -- */
+const protectionQuestions = [
+  {text:'Which type of malware disguises itself as legitimate software?', options:['Trojan','Virus','Worm','Ransomware'], answer:'Trojan'},
+  {text:'Which type of malware self-replicates across networks without needing a host file?', options:['Worm','Virus','Trojan','Spyware'], answer:'Worm'},
+  {text:'Which type of malware requires a host file and user action to spread?', options:['Virus','Worm','Trojan','Ransomware'], answer:'Virus'},
+  {text:'Malware that encrypts files and demands payment is called:', options:['Ransomware','Spyware','Trojan','Worm'], answer:'Ransomware'},
+  {text:'Malware that secretly monitors user activity is called:', options:['Spyware','Ransomware','Worm','Rootkit'], answer:'Spyware'},
+  {text:'A rootkit is designed to:', options:['Hide deep in the OS to conceal malicious activity','Steal passwords only','Encrypt files','Spread via email'], answer:'Hide deep in the OS to conceal malicious activity'},
+  {text:'Authentication based on "something you know" is:', options:['Password / PIN','Biometric scan','Smart card','USB key'], answer:'Password / PIN'},
+  {text:'Authentication based on "something you have" is:', options:['Smart card / token','Password','Fingerprint','Voice recognition'], answer:'Smart card / token'},
+  {text:'Authentication based on "something you are" is:', options:['Biometric (fingerprint, face, iris)','Password','PIN code','Security question'], answer:'Biometric (fingerprint, face, iris)'},
+  {text:'MFA stands for:', options:['Multi-Factor Authentication','Main File Access','Master Firewall Alert','Memory Fault Avoidance'], answer:'Multi-Factor Authentication'},
+  {text:'In DAC (Discretionary Access Control), the owner of a resource:', options:['Decides who can access it','Has no control over access','Cannot change permissions','Is the system administrator only'], answer:'Decides who can access it'},
+  {text:'In RBAC, access is based on:', options:['The users role within the organization','The users name','The users password','The users physical location'], answer:'The users role within the organization'},
+  {text:'Symmetric encryption uses:', options:['One shared key for both encryption and decryption','Two different keys (public and private)','No key at all','A password only'], answer:'One shared key for both encryption and decryption'},
+  {text:'Asymmetric encryption uses:', options:['A public-private key pair','A single shared key','No encryption','A simple substitution cipher'], answer:'A public-private key pair'},
+  {text:'A firewall functions by:', options:['Filtering traffic based on rules','Encrypting all data','Scanning for viruses','Backing up files'], answer:'Filtering traffic based on rules'},
+  {text:'The 3-2-1 backup rule means:', options:['3 copies, 2 different media, 1 offsite','3 backups, 2 days, 1 hour','3 files, 2 folders, 1 drive','3 users, 2 admins, 1 system'], answer:'3 copies, 2 different media, 1 offsite'},
+  {text:'In the Philippines, RA 10175 is also known as the:', options:['Cybercrime Prevention Act of 2012','Data Privacy Act of 2012','E-Commerce Act of 2000','DICT Act of 2015'], answer:'Cybercrime Prevention Act of 2012'},
+  {text:'In the Philippines, RA 10173 is the:', options:['Data Privacy Act of 2012','Cybercrime Prevention Act of 2012','Intellectual Property Code','SIM Card Registration Act'], answer:'Data Privacy Act of 2012'},
+  {text:'An attack that floods a server to make it unavailable is called:', options:['DDoS','Phishing','Man-in-the-Middle','SQL Injection'], answer:'DDoS'},
+  {text:'Manipulating people to reveal confidential information is called:', options:['Social Engineering','Encryption','Firewalling','Penetration Testing'], answer:'Social Engineering'},
+];
+
+/* -- Boot Sequence: click in order -- */
+const bootSequence = ['Power Supply Signals Motherboard','CPU Initializes & POST Runs','BIOS/UEFI Locates Boot Device','Boot Loader Loads (e.g. GRUB, Windows Boot Manager)','OS Kernel Loads into Memory','Kernel Initializes Drivers & Services','User Logs In','Desktop/Shell Loads'];
+
+/* -- OS Concepts: Matching Pairs -- */
+const osConceptsPairs = [
+  {concept:'FCFS', definition:'First-Come, First-Served scheduling'},
+  {concept:'SJF', definition:'Shortest Job First scheduling'},
+  {concept:'Round Robin', definition:'Each process gets a fixed time quantum'},
+  {concept:'Priority Scheduling', definition:'Highest priority process runs first'},
+  {concept:'RAID 0', definition:'Striping without redundancy'},
+  {concept:'RAID 1', definition:'Mirroring for fault tolerance'},
+];
+
+/* ================= GLOBAL BOMB STATE ================= */
+const ALL_TYPES = ['cpu_arch','booting','process_mgmt','scheduling','storage_prot','protection','os_order','os_pairs'];
+const typeLabels = {
+  cpu_arch:'CPU Architecture — Core Concepts',
+  booting:'Booting Process — Start Up',
+  process_mgmt:'Process Management — States & PCB',
+  scheduling:'Scheduling Algorithms — Choose Wisely',
+  storage_prot:'Storage Management — Memory & Disks',
+  protection:'Computer Protection — Threats & Security',
+  os_order:'Boot Sequence — Order the Steps',
+  os_pairs:'OS Concepts — Connect the Pairs',
+};
+
+let timeLeft = 0, mistakes = 0, bombTimer = null;
+let moduleState = {};
+let allModuleIds = [];
+let solvedCount = 0;
+let instanceCounters = {};
+ALL_TYPES.forEach(t=>instanceCounters[t]=0);
+const romanSuffix = ['', ' II', ' III', ' IV', ' V', ' VI'];
+
+function updateTimerDisplay(){
+  const el = document.getElementById('timer');
+  if(!el) return;
+  el.textContent = fmt(timeLeft);
+  el.classList.toggle('low', timeLeft<=30);
+  document.getElementById('frame').classList.toggle('critical', timeLeft<=15);
+}
+function startBomb(){
+  updateTimerDisplay();
+  bombTimer = setInterval(()=>{
+    timeLeft--;
+    if(timeLeft<=0){ timeLeft=0; updateTimerDisplay(); explode(); return; }
+    updateTimerDisplay();
+  },1000);
+}
+function penalize(id){
+  mistakes++;
+  timeLeft = Math.max(0, timeLeft-10);
+  updateTimerDisplay();
+  const el = document.getElementById(id);
+  if(el){ el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'),300); }
+  if(timeLeft<=0) explode();
+}
+function updateSolvedCounts(){
+  document.querySelectorAll('.solvedcount').forEach(el=>{
+    el.textContent = 'SOLVED '+solvedCount+'/'+allModuleIds.length;
+  });
+}
+function markSolved(id){
+  if(moduleState[id].solved) return;
+  moduleState[id].solved = true;
+  document.getElementById(id+'-led').classList.add('on');
+  document.getElementById(id).classList.add('solved');
+  solvedCount++;
+  updateSolvedCounts();
+  if(solvedCount>=allModuleIds.length) defuse();
+}
+function explode(){
+  clearInterval(bombTimer);
+  const card = document.getElementById('overlay-card');
+  card.className = 'overlay-card lose';
+  document.getElementById('overlay-big').textContent = 'BOOM';
+  document.getElementById('overlay-sub').textContent = 'The clock ran out with '+(allModuleIds.length-solvedCount)+' module(s) still live. Mistakes made: '+mistakes+'.';
+  document.getElementById('overlay').classList.add('active');
+}
+function defuse(){
+  clearInterval(bombTimer);
+  const card = document.getElementById('overlay-card');
+  card.className = 'overlay-card win';
+  document.getElementById('overlay-big').textContent = 'DEFUSED';
+  document.getElementById('overlay-sub').textContent = 'All '+allModuleIds.length+' modules cleared with '+fmt(timeLeft)+' left on the clock, and '+mistakes+' mistake(s) made.';
+  document.getElementById('overlay').classList.add('active');
+}
+function renderDots(containerId, count, filled){
+  const c = document.getElementById(containerId);
+  if(!c) return;
+  c.innerHTML='';
+  for(let i=0;i<count;i++){
+    const d = document.createElement('span');
+    d.className = 'dot'+(i<filled?' filled':'');
+    c.appendChild(d);
+  }
+}
+function switchSide(name){
+  document.querySelectorAll('.sideSection').forEach(s=>s.classList.remove('active'));
+  document.getElementById('side-'+name).classList.add('active');
+  document.querySelectorAll('.sidebtn').forEach(b=>b.classList.toggle('active', b.dataset.side===name));
+}
+
+/* ================= MODULE SHELL ================= */
+function moduleShell(id, label){
+  const div = document.createElement('div');
+  div.className='module';
+  div.id=id;
+  div.innerHTML = `<div class="led" id="${id}-led"></div><div class="mtitle">${label}</div><div class="mbody" id="${id}-body"></div>`;
+  return div;
+}
+function createModule(type, gridEl){
+  const num = ++instanceCounters[type];
+  const id = type+'-'+num;
+  const label = typeLabels[type] + (romanSuffix[num-1] || ' '+num);
+  const el = moduleShell(id, label);
+  gridEl.appendChild(el);
+  allModuleIds.push(id);
+  moduleState[id] = {type, solved:false};
+  const initFns = {
+    cpu_arch: initCpuArch, booting: initBooting, process_mgmt: initProcessMgmt,
+    scheduling: initScheduling, storage_prot: initStorageProt, protection: initProtection,
+    os_order: initOsOrder, os_pairs: initOsPairs,
+  };
+  initFns[type](id);
+}
+
+/* ================= CPU ARCHITECTURE (MC) ================= */
+const MC_NEEDED = 3;
+function nextCpuArch(id){
+  const { idx, q } = pickQuestion(cpuArchQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
+  moduleState[id].current = q;
+  document.getElementById(id+'-case').textContent = q.text;
+  const box = document.getElementById(id+'-choices');
+  box.innerHTML='';
+  shuffle(q.options).forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='choice2';
+    btn.textContent = opt;
+    btn.onclick = ()=>answerCpuArch(id, opt, btn);
+    box.appendChild(btn);
+  });
+}
+function initCpuArch(id){
+  moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
+  renderDots(id+'-dots', MC_NEEDED, 0);
+  nextCpuArch(id);
+}
+function answerCpuArch(id, opt, btn){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const correct = st.current.answer;
+  document.querySelectorAll('#'+id+'-choices .choice2').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  st.usedIndices.push(st.currentIdx);
+  if(opt===correct){
+    st.streak++;
+    renderDots(id+'-dots', MC_NEEDED, st.streak);
+    if(st.streak>=MC_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', MC_NEEDED, 0);
+    penalize(id);
+  }
+  setTimeout(()=>nextCpuArch(id), 700);
+}
+
+/* ================= BOOTING (MC) ================= */
+function nextBooting(id){
+  const { idx, q } = pickQuestion(bootingQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
+  moduleState[id].current = q;
+  document.getElementById(id+'-case').textContent = q.text;
+  const box = document.getElementById(id+'-choices');
+  box.innerHTML='';
+  shuffle(q.options).forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='choice2';
+    btn.textContent = opt;
+    btn.onclick = ()=>answerBooting(id, opt, btn);
+    box.appendChild(btn);
+  });
+}
+function initBooting(id){
+  moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
+  renderDots(id+'-dots', MC_NEEDED, 0);
+  nextBooting(id);
+}
+function answerBooting(id, opt, btn){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const correct = st.current.answer;
+  document.querySelectorAll('#'+id+'-choices .choice2').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  st.usedIndices.push(st.currentIdx);
+  if(opt===correct){
+    st.streak++;
+    renderDots(id+'-dots', MC_NEEDED, st.streak);
+    if(st.streak>=MC_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', MC_NEEDED, 0);
+    penalize(id);
+  }
+  setTimeout(()=>nextBooting(id), 700);
+}
+
+/* ================= PROCESS MANAGEMENT (MC) ================= */
+function nextProcessMgmt(id){
+  const { idx, q } = pickQuestion(processMgmtQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
+  moduleState[id].current = q;
+  document.getElementById(id+'-case').textContent = q.text;
+  const box = document.getElementById(id+'-choices');
+  box.innerHTML='';
+  shuffle(q.options).forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='choice2';
+    btn.textContent = opt;
+    btn.onclick = ()=>answerProcessMgmt(id, opt, btn);
+    box.appendChild(btn);
+  });
+}
+function initProcessMgmt(id){
+  moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
+  renderDots(id+'-dots', MC_NEEDED, 0);
+  nextProcessMgmt(id);
+}
+function answerProcessMgmt(id, opt, btn){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const correct = st.current.answer;
+  document.querySelectorAll('#'+id+'-choices .choice2').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  st.usedIndices.push(st.currentIdx);
+  if(opt===correct){
+    st.streak++;
+    renderDots(id+'-dots', MC_NEEDED, st.streak);
+    if(st.streak>=MC_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', MC_NEEDED, 0);
+    penalize(id);
+  }
+  setTimeout(()=>nextProcessMgmt(id), 700);
+}
+
+/* ================= SCHEDULING (MC) ================= */
+function nextScheduling(id){
+  const { idx, q } = pickQuestion(schedulingQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
+  moduleState[id].current = q;
+  document.getElementById(id+'-case').textContent = q.text;
+  const box = document.getElementById(id+'-choices');
+  box.innerHTML='';
+  shuffle(q.options).forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='choice2';
+    btn.textContent = opt;
+    btn.onclick = ()=>answerScheduling(id, opt, btn);
+    box.appendChild(btn);
+  });
+}
+function initScheduling(id){
+  moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
+  renderDots(id+'-dots', MC_NEEDED, 0);
+  nextScheduling(id);
+}
+function answerScheduling(id, opt, btn){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const correct = st.current.answer;
+  document.querySelectorAll('#'+id+'-choices .choice2').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  st.usedIndices.push(st.currentIdx);
+  if(opt===correct){
+    st.streak++;
+    renderDots(id+'-dots', MC_NEEDED, st.streak);
+    if(st.streak>=MC_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', MC_NEEDED, 0);
+    penalize(id);
+  }
+  setTimeout(()=>nextScheduling(id), 700);
+}
+
+/* ================= STORAGE MANAGEMENT (MC + SORT) ================= */
+const STORAGE_NEEDED = 3;
+function nextStorageRound(id){
+  const st = moduleState[id];
+  const body = document.getElementById(id+'-body');
+  if(Math.random() < 0.6){
+    st.mode = 'mc';
+    const { idx, q } = pickQuestion(storageMCQuestions, st.usedIndices);
+    st.currentIdx = idx;
+    st.current = q;
+    body.innerHTML = `
+      <div class="case2" id="${id}-case">${q.text}</div>
+      <div id="${id}-choices"></div>
+      <div class="progress-dots" id="${id}-dots"></div>`;
+    const box = document.getElementById(id+'-choices');
+    shuffle(q.options).forEach(opt=>{
+      const btn = document.createElement('button');
+      btn.className='choice2';
+      btn.textContent = opt;
+      btn.onclick = ()=>answerStorageMC(id, opt, btn);
+      box.appendChild(btn);
+    });
+  } else {
+    st.mode = 'sort';
+    const item = storageSortItems[Math.floor(Math.random()*storageSortItems.length)];
+    st.current = item;
+      body.innerHTML = `
+      <div class="sort-name" id="${id}-name">${item.name}</div>
+      <div class="bins2 five">
+        <div class="bin2" data-c="Fastest">FASTEST</div>
+        <div class="bin2" data-c="Medium">MEDIUM</div>
+        <div class="bin2" data-c="Slow">SLOW</div>
+        <div class="bin2" data-c="Striping">STRIPING</div>
+        <div class="bin2" data-c="Mirroring">MIRRORING</div>
+      </div>
+      <div class="progress-dots" id="${id}-dots"></div>`;
+    body.querySelectorAll('.bin2').forEach(b=>{ b.onclick = ()=>answerStorageSort(id, b.dataset.c); });
+  }
+  renderDots(id+'-dots', STORAGE_NEEDED, st.streak);
+}
+function initStorageProt(id){
+  moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
+  nextStorageRound(id);
+}
+function answerStorageMC(id, opt, btn){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const correct = st.current.answer;
+  document.querySelectorAll('#'+id+'-choices .choice2').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  st.usedIndices.push(st.currentIdx);
+  if(opt===correct){
+    st.streak++;
+    if(st.streak>=STORAGE_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
+  } else {
+    st.streak = 0;
+    penalize(id);
+  }
+  setTimeout(()=>nextStorageRound(id), 700);
+}
+function answerStorageSort(id, cat){
+  const st = moduleState[id];
+  if(st.solved) return;
+  if(cat === st.current.cat){
+    st.streak++;
+    if(st.streak>=STORAGE_NEEDED){ markSolved(id); return; }
+  } else {
+    st.streak = 0;
+    penalize(id);
+  }
+  nextStorageRound(id);
+}
+
+/* ================= COMPUTER PROTECTION (MC) ================= */
+function nextProtection(id){
+  const { idx, q } = pickQuestion(protectionQuestions, moduleState[id].usedIndices);
+  moduleState[id].currentIdx = idx;
+  moduleState[id].current = q;
+  document.getElementById(id+'-case').textContent = q.text;
+  const box = document.getElementById(id+'-choices');
+  box.innerHTML='';
+  shuffle(q.options).forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='choice2';
+    btn.textContent = opt;
+    btn.onclick = ()=>answerProtection(id, opt, btn);
+    box.appendChild(btn);
+  });
+}
+function initProtection(id){
+  moduleState[id].streak = 0;
+  moduleState[id].usedIndices = [];
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="case2" id="${id}-case">—</div><div id="${id}-choices"></div><div class="progress-dots" id="${id}-dots"></div>`;
+  renderDots(id+'-dots', MC_NEEDED, 0);
+  nextProtection(id);
+}
+function answerProtection(id, opt, btn){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const correct = st.current.answer;
+  document.querySelectorAll('#'+id+'-choices .choice2').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===correct) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+  });
+  st.usedIndices.push(st.currentIdx);
+  if(opt===correct){
+    st.streak++;
+    renderDots(id+'-dots', MC_NEEDED, st.streak);
+    if(st.streak>=MC_NEEDED){ setTimeout(()=>markSolved(id), 500); return; }
+  } else {
+    st.streak = 0;
+    renderDots(id+'-dots', MC_NEEDED, 0);
+    penalize(id);
+  }
+  setTimeout(()=>nextProtection(id), 700);
+}
+
+/* ================= BOOT SEQUENCE (click in order) ================= */
+function initOsOrder(id){
+  const order = shuffle(bootSequence.map((s,i)=>({label:s, rank:i})));
+  moduleState[id].order = order;
+  moduleState[id].pointer = 0;
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div id="${id}-list"></div>`;
+  const list = document.getElementById(id+'-list');
+  order.forEach((u, idx)=>{
+    const row = document.createElement('div');
+    row.className='wire-row';
+    row.innerHTML = `<span class="wire-dot w${idx%7}"></span><span>${u.label}</span>`;
+    row.onclick = ()=>clickOsOrder(id, idx);
+    list.appendChild(row);
+  });
+}
+function clickOsOrder(id, idx){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const rows = document.querySelectorAll('#'+id+'-list .wire-row');
+  const row = rows[idx];
+  if(row.classList.contains('cut')) return;
+  if(st.order[idx].rank === st.pointer){
+    row.classList.add('cut');
+    st.pointer++;
+    if(st.pointer>=st.order.length) markSolved(id);
+  } else {
+    penalize(id);
+    rows.forEach(r=>r.classList.remove('cut'));
+    st.pointer = 0;
+  }
+}
+
+/* ================= OS CONCEPTS (matching pairs) ================= */
+function initOsPairs(id){
+  const left = shuffle(osConceptsPairs.map((p,i)=>({label:p.concept, pairIdx:i})));
+  const right = shuffle(osConceptsPairs.map((p,i)=>({label:p.definition, pairIdx:i})));
+  moduleState[id].left = left;
+  moduleState[id].right = right;
+  moduleState[id].selectedLeft = null;
+  moduleState[id].solvedPairs = 0;
+  const body = document.getElementById(id+'-body');
+  body.innerHTML = `<div class="connect-wrap">
+      <div class="connect-col" id="${id}-left"></div>
+      <div class="connect-col" id="${id}-right"></div>
+    </div>`;
+  const leftCol = document.getElementById(id+'-left');
+  left.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className='connect-item';
+    div.textContent = item.label;
+    div.onclick = ()=>selectOsPairsLeft(id, idx);
+    leftCol.appendChild(div);
+  });
+  const rightCol = document.getElementById(id+'-right');
+  right.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className='connect-item';
+    div.textContent = item.label;
+    div.onclick = ()=>selectOsPairsRight(id, idx);
+    rightCol.appendChild(div);
+  });
+}
+function selectOsPairsLeft(id, idx){
+  const st = moduleState[id];
+  if(st.solved) return;
+  const leftEls = document.querySelectorAll('#'+id+'-left .connect-item');
+  if(leftEls[idx].classList.contains('solved')) return;
+  leftEls.forEach(e=>e.classList.remove('selected'));
+  leftEls[idx].classList.add('selected');
+  st.selectedLeft = idx;
+}
+function selectOsPairsRight(id, idx){
+  const st = moduleState[id];
+  if(st.solved || st.selectedLeft===null) return;
+  const rightEls = document.querySelectorAll('#'+id+'-right .connect-item');
+  if(rightEls[idx].classList.contains('solved')) return;
+  const leftEls = document.querySelectorAll('#'+id+'-left .connect-item');
+  const leftPick = st.left[st.selectedLeft];
+  const rightPick = st.right[idx];
+  if(leftPick.pairIdx === rightPick.pairIdx){
+    leftEls[st.selectedLeft].classList.add('solved');
+    leftEls[st.selectedLeft].classList.remove('selected');
+    rightEls[idx].classList.add('solved');
+    st.selectedLeft = null;
+    st.solvedPairs++;
+    if(st.solvedPairs>=osConceptsPairs.length) markSolved(id);
+  } else {
+    penalize(id);
+    leftEls.forEach(e=>e.classList.remove('selected'));
+    st.selectedLeft = null;
+  }
+}
+
+/* ================= GAME START ================= */
+const DIFFICULTY_CONFIG = {
+  easy:   {sides:['front','back'], perSide:4, time:120},
+  medium: {sides:['front','back'], perSide:6, time:120},
+  hard:   {sides:['front','back','left','right','bottom'], perSide:8, time:420},
+};
+
+function buildSideSection(sideName, isFirst){
+  const section = document.createElement('div');
+  section.className = 'sideSection'+(isFirst?' active':'');
+  section.id = 'side-'+sideName;
+  let html = '';
+  if(sideName==='front'){
+    html += `<div class="timer-wrap">
+      <div class="timer" id="timer">00:00</div>
+      <div class="strikes">MISTAKES COST <b>-10s</b> EACH</div>
+    </div>`;
+  } else {
+    html += `<div class="backnote">${sideName.toUpperCase()} — no clock here. Return to the FRONT to check the time.</div>`;
+  }
+  html += `<div class="solvedcount">SOLVED 0/0</div>`;
+  html += `<div class="module-grid" id="grid-${sideName}"></div>`;
+  section.innerHTML = html;
+  return section;
+}
+
+function startGame(difficulty){
+  document.getElementById('setup').style.display='none';
+  document.getElementById('game').style.display='block';
+
+  const cfg = DIFFICULTY_CONFIG[difficulty];
+  timeLeft = cfg.time;
+
+  const sidesContainer = document.getElementById('sidesContainer');
+  sidesContainer.innerHTML = '';
+  const nav = document.getElementById('sideNav');
+  nav.innerHTML = '';
+
+  cfg.sides.forEach((sideName, i)=>{
+    const section = buildSideSection(sideName, i===0);
+    sidesContainer.appendChild(section);
+
+    const navBtn = document.createElement('button');
+    navBtn.className = 'sidebtn'+(i===0?' active':'');
+    navBtn.dataset.side = sideName;
+    navBtn.textContent = sideName.toUpperCase();
+    navBtn.onclick = ()=>switchSide(sideName);
+    nav.appendChild(navBtn);
+
+    const gridEl = document.getElementById('grid-'+sideName);
+    gridEl.style.setProperty('--cols', cfg.perSide/2);
+    const sideTypes = shuffle(ALL_TYPES).slice(0, cfg.perSide);
+    sideTypes.forEach(t=>createModule(t, gridEl));
+  });
+
+  updateSolvedCounts();
+  startBomb();
+}
+</script>
+</body>
+</html>
