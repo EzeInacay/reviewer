@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Reviewer by Eze</title>
+<title>Welcome</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -112,6 +112,30 @@
   .chip-desc{font-size:13px; color:var(--text-dim); margin:0; line-height:1.5;}
   .chip-tag{font-family:var(--mono); font-size:11px; color:var(--phosphor); margin-top:8px; display:block;}
   .chip-tag.soon{color:var(--text-dim);}
+
+  .suggest-box{
+    position:fixed; left:16px; bottom:16px; width:280px; max-width:calc(100vw - 32px);
+    background:var(--panel); border:1px solid var(--panel-edge); border-radius:12px;
+    padding:14px; z-index:20; box-shadow:0 8px 24px rgba(0,0,0,0.4);
+  }
+  .suggest-head{font-family:var(--mono); font-size:11px; letter-spacing:.1em; color:var(--phosphor); text-transform:uppercase; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between;}
+  .suggest-count{color:var(--text-dim); font-weight:400;}
+  .suggest-input{
+    width:100%; font-family:var(--sans); font-size:12.5px; background:#0e1420; border:1px solid var(--panel-edge);
+    color:var(--text); border-radius:6px; padding:8px; margin-bottom:6px; resize:none;
+  }
+  .suggest-input:focus{outline:none; border-color:var(--copper);}
+  textarea.suggest-input{min-height:56px;}
+  .suggest-row{display:flex; gap:6px;}
+  .suggest-btn{
+    flex:1; font-family:var(--sans); font-weight:600; font-size:11.5px; background:var(--copper); color:#1b120b;
+    border:none; border-radius:6px; padding:8px 6px; cursor:pointer;
+  }
+  .suggest-btn:hover{background:var(--copper-bright);}
+  .suggest-btn.secondary{background:transparent; border:1px solid var(--panel-edge); color:var(--text-dim);}
+  .suggest-btn.secondary:hover{border-color:var(--steel,var(--text-dim)); color:var(--text);}
+  .suggest-note{font-size:10.5px; color:var(--text-dim); margin-top:8px; line-height:1.5;}
+  .suggest-toast{font-size:11px; color:var(--phosphor); margin-top:6px; min-height:14px;}
 </style>
 </head>
 <body>
@@ -151,5 +175,125 @@
   </div>
 
 </div>
+
+<div class="suggest-box">
+  <div class="suggest-head">SUGGESTIONS <span class="suggest-count" id="sugCount">(0 loaded)</span></div>
+  <textarea class="suggest-input" id="sugMessage" placeholder="Suggest a topic, report a bug, request a feature..."></textarea>
+  <input class="suggest-input" id="sugName" placeholder="Name (optional)">
+  <div class="suggest-row">
+    <button class="suggest-btn" onclick="addSuggestion()">SEND</button>
+    <button class="suggest-btn secondary" onclick="document.getElementById('sugFile').click()">LOAD FILE</button>
+  </div>
+  <input type="file" id="sugFile" accept=".html" style="display:none;" onchange="loadSuggestionFile(event)">
+  <div class="suggest-toast" id="sugToast"></div>
+  <div class="suggest-note">Sending downloads an updated <b>suggestion.html</b>. Load your previous one first to keep adding to the same list — static pages can't write to disk on their own.</div>
+</div>
+
+<script>
+let suggestions = [];
+
+function loadSuggestionFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    const match = ev.target.result.match(/<script type="application\/json" id="sugData">([\s\S]*?)<\/script>/);
+    if(match){
+      try{
+        suggestions = JSON.parse(match[1]);
+        updateSugCount();
+        toast('Loaded '+suggestions.length+' previous suggestion(s).');
+      }catch(err){
+        toast('Could not read that file.');
+      }
+    } else {
+      toast('No suggestion data found in that file.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function addSuggestion(){
+  const msgEl = document.getElementById('sugMessage');
+  const nameEl = document.getElementById('sugName');
+  const msg = msgEl.value.trim();
+  if(!msg){ toast('Write a message first.'); return; }
+  suggestions.unshift({
+    name: nameEl.value.trim() || 'Anonymous',
+    message: msg,
+    time: new Date().toLocaleString()
+  });
+  msgEl.value='';
+  updateSugCount();
+  downloadSuggestions();
+  toast('Added — suggestion.html downloaded.');
+}
+
+function updateSugCount(){
+  document.getElementById('sugCount').textContent = '('+suggestions.length+' loaded)';
+}
+function toast(msg){
+  const t = document.getElementById('sugToast');
+  t.textContent = msg;
+  setTimeout(()=>{ if(t.textContent===msg) t.textContent=''; }, 3500);
+}
+
+function downloadSuggestions(){
+  const rows = suggestions.map(s => `
+    <div class="entry">
+      <div class="entry-head"><span class="entry-name">${escapeHtml(s.name)}</span><span class="entry-time">${escapeHtml(s.time)}</span></div>
+      <div class="entry-msg">${escapeHtml(s.message)}</div>
+    </div>`).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Suggestions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:#0b0e14; --panel:#111826; --panel-edge:#202a3d; --copper:#c17a4d; --phosphor:#6df7c1; --text:#e8ecf1; --text-dim:#8b94a7; }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; padding:24px 16px 60px; }
+  .wrap{max-width:640px;margin:0 auto;}
+  h1{ font-family:'Space Mono',monospace; color:var(--copper); font-size:24px; }
+  a.back{ font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim); text-decoration:none; border:1px solid var(--panel-edge); border-radius:6px; padding:6px 10px; display:inline-block; margin-bottom:16px; }
+  .entry{ background:var(--panel); border:1px solid var(--panel-edge); border-radius:10px; padding:14px 16px; margin-bottom:10px; }
+  .entry-head{ display:flex; justify-content:space-between; font-family:'Space Mono',monospace; font-size:11px; color:var(--phosphor); margin-bottom:6px; }
+  .entry-time{color:var(--text-dim);}
+  .entry-msg{font-size:13.5px; line-height:1.5;}
+  .empty{color:var(--text-dim); font-size:13px; text-align:center; padding:30px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; HOME</a>
+  <h1>Suggestions (${suggestions.length})</h1>
+  ${suggestions.length ? rows : '<div class="empty">No suggestions yet.</div>'}
+</div>
+<script type="application/json" id="sugData">${JSON.stringify(suggestions)}</` + `script>
+</body>
+</html>`;
+
+  const blob = new Blob([html], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'suggestion.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+</script>
+
 </body>
 </html>
